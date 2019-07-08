@@ -155,14 +155,23 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         }
     }
 
+
+    /**
+     * 函数 可能被调用 多次
+     * 防止被添加多次 拦截器 加一个 flags
+     */
+    private  int interceptorsFlage=0;
+
     private void AddInterceptors(XC_MethodHook.MethodHookParam param) {
         try {
-
-            //interceptors
-            List interceptors = (List) XposedHelpers.getObjectField(param.thisObject, "interceptors");
-            CLogUtils.e("拿到了 拦截器  集合 ");
-            interceptors.add(getHttpLoggingInterceptor());
-
+            if(interceptorsFlage==0) {
+                //interceptors
+                List interceptors = (List) XposedHelpers.getObjectField(param.thisObject, "interceptors");
+                CLogUtils.e("拿到了 拦截器  集合 ");
+                Object httpLoggingInterceptor = getHttpLoggingInterceptor();
+                interceptors.add(httpLoggingInterceptor);
+                interceptorsFlage=1;
+            }
         } catch (Exception e) {
             CLogUtils.e("Hook到 build但出现 异常 " + e.getMessage());
             e.printStackTrace();
