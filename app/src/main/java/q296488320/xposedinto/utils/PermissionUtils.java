@@ -89,7 +89,7 @@ public class PermissionUtils {
         }
         file.mkdirs();
         file1.mkdirs();
-        FileUtils.Assets2Sd(context,"interceptor.jar",path+"/"+"interceptor.jar");
+        FileUtils.Assets2Sd(context,"bbb.dex",path+"/"+"bbb.dex");
     }
 
 

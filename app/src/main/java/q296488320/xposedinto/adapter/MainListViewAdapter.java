@@ -1,6 +1,8 @@
 package q296488320.xposedinto.adapter;
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
@@ -14,11 +16,13 @@ import q296488320.xposedinto.App;
 import q296488320.xposedinto.Bean.AppBean;
 import q296488320.xposedinto.R;
 import q296488320.xposedinto.XpHook.Hook;
+import q296488320.xposedinto.utils.CLogUtils;
 import q296488320.xposedinto.utils.Constants;
 import q296488320.xposedinto.utils.SpUtil;
 import q296488320.xposedinto.utils.ToastUtils;
 
 import static q296488320.xposedinto.config.Key.APP_INFO;
+import static q296488320.xposedinto.config.Key.MODEL;
 
 /**
  * Created by lyh on 2019/2/14.
@@ -27,7 +31,7 @@ public class MainListViewAdapter extends BaseAdapter{
 
 
 
-    private ArrayList<AppBean> data =null;
+    private ArrayList<AppBean> data;
 
 
 
@@ -77,19 +81,43 @@ public class MainListViewAdapter extends BaseAdapter{
         holder.tv_packageName.setText(appBean.packageName);
 
 
-        holder.All.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Save(position);
-            }
-        });
+        holder.All.setOnClickListener(v -> Save(position));
         return convertView;
     }
 
     private void Save(int position) {
         SpUtil.putString(mContext,APP_INFO,data.get(position).packageName);
-        ToastUtils.showToast(App.getContext(),"保存成功"+ data.get(position).packageName);
+        showMutilDialog(position);
+
     }
+
+
+
+
+
+    //弹出一个多选对话框
+    private void showMutilDialog(int position) {
+        //[1]构造对话框的实例
+        AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
+        builder.setTitle("");
+        final String[] items = {"模式1", "模式2"};
+        //builder.setMessage("默认是 模式1 如果 模式1 没有效果 切换 模式2 并重新打开 ");
+        builder.setSingleChoiceItems(items, -1, (dialog, which) -> {
+            CLogUtils.e("whick  "+which);
+            if(which==0){
+                //模式1
+                SpUtil.putString(mContext,MODEL,"1");
+            }else  if(which==1){
+                SpUtil.putString(mContext,MODEL,"2");
+            }
+            ToastUtils.showToast(App.getContext(),"保存成功"+ data.get(position).packageName +"   "+( which==0?"模式1":"模式2") );
+            dialog.dismiss();
+        });
+        //[3]展示对话框  和toast一样 一定要记得show出来
+        builder.show();
+    }
+
+
 
 
     private static class ViewHolder {
@@ -97,14 +125,14 @@ public class MainListViewAdapter extends BaseAdapter{
         LinearLayout All;
         ImageView iv_appIcon;
 
-        public ViewHolder(View convertView) {
-            All=(LinearLayout)convertView.findViewById(R.id.ll_all);
-            tv_packageName = (TextView) convertView.findViewById(R.id.tv_packName);
-            tv_appName = (TextView) convertView.findViewById(R.id.tv_appName);
-            iv_appIcon = (ImageView) convertView.findViewById(R.id.iv_appIcon);
+        ViewHolder(View convertView) {
+            All= convertView.findViewById(R.id.ll_all);
+            tv_packageName = convertView.findViewById(R.id.tv_packName);
+            tv_appName = convertView.findViewById(R.id.tv_appName);
+            iv_appIcon = convertView.findViewById(R.id.iv_appIcon);
         }
 
-        public static   ViewHolder getHolder(View convertView){
+        static   ViewHolder getHolder(View convertView){
             ViewHolder holder = (ViewHolder) convertView.getTag();
             if(holder==null){
                 holder = new ViewHolder(convertView);

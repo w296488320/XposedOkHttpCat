@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.net.wifi.WifiManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.MenuItem;
@@ -50,6 +51,18 @@ public class MainActivity extends AppCompatActivity {
         initData();
         initView();
         PermissionUtils.initPermission(this,permissionList);
+        test();
+    }
+
+    private void test() {
+        try {
+            WifiManager systemService = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+            String ssid = systemService.getConnectionInfo().getSSID();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
     }
 
     private void initData() {
