@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
       <module fileurl="file://$PROJECT_DIR$/ly-xposed.iml" filepath="$PROJECT_DIR$/ly-xposed.iml" />
+      <module fileurl="file://$PROJECT_DIR$/socketclient/socketclient.iml" filepath="$PROJECT_DIR$/socketclient/socketclient.iml" />
     </modules>
   </component>
 </project>

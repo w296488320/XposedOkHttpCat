@@ -51,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
         initData();
         initView();
         PermissionUtils.initPermission(this,permissionList);
+
         test();
     }
 

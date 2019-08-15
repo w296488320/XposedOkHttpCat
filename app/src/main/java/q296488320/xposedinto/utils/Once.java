@@ -1,4 +1,4 @@
-package com.sqview.kccatalog.util;
+package q296488320.xposedinto.utils;
 
 import android.content.Context;
 import android.content.SharedPreferences;
