@@ -63,7 +63,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     //使用 共享 数据的 XSharedPreferences
     private XSharedPreferences shared;
     private Class<?> mHttpLoggingInterceptor;
-    private Class<?> mLoggerClass;
+    private Class<?> mHttpLoggingInterceptorLoggerClass;
     private DexClassLoader mDexClassLoader;
 
     /**
@@ -79,6 +79,9 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
     private int interceptorsFlage2 = 0;
 
+
+    private ArrayList<String> OkHttpLoggerList = new ArrayList();
+
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
         try {
@@ -91,8 +94,8 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                 return;
             } else {
                 if (lpparam.packageName.equals(InvokPackage)) {
-                    if(flag4==0) {
-                        flag4=1;
+                    if (flag4 == 0) {
+                        flag4 = 1;
                         CLogUtils.e("开始执行 HookAttach 对应的app是 " + InvokPackage);
                         HookAttach();
                     }
@@ -103,8 +106,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         }
 
     }
-
-
 
 
     /**
@@ -226,12 +227,12 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
     private ArrayList<Field> mFieldArrayList = new ArrayList<>();
 
-    private boolean isBuilder(Class ccc) {
+    private boolean isBuilder(@NonNull Class ccc) {
 
         int ListTypeCount = 0;
         int FinalTypeCount = 0;
         Field[] fields = ccc.getDeclaredFields();
-        List<Field> List=new ArrayList<>();
+        List<Field> List = new ArrayList<>();
         for (Field field : fields) {
             String type = field.getType().getName();
             //四个 集合
@@ -253,7 +254,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         return false;
     }
 
-    private boolean isClient(Class<?> mClass) {
+    private boolean isClient(@NonNull Class<?> mClass) {
         int typeCount = 0;
         //getDeclaredFields 是个 获取 全部的
         Field[] fields = mClass.getDeclaredFields();
@@ -282,6 +283,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
 
     private List<String> getClassName(String packageName) {
+        OkHttpLoggerList.clear();
         List<String> classNameList = new ArrayList<String>();
         try {
             //通过DexFile查找当前的APK中可执行文件
@@ -295,6 +297,9 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                 String className = (String) enumeration.nextElement();
                 if (className.contains("okhttp3")) {//在当前所有可执行的类里面查找包含有该包名的所有类
                     classNameList.add(className);
+                    if (className.contains("okhttp3.logging")) {
+                        OkHttpLoggerList.add(className);
+                    }
                 }
             }
         } catch (IOException e) {
@@ -352,8 +357,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     }
 
 
-
-
     private void AddInterceptors2(XC_MethodHook.MethodHookParam param) {
         try {
             if (interceptorsFlage2 == 0) {
@@ -363,7 +366,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                     List interceptors = (List) XposedHelpers.getObjectField(param.thisObject, mFieldArrayList.get(0).getName());
                     CLogUtils.e("拿到 集合  ");
                     Object httpLoggingInterceptor = getHttpLoggingInterceptor();
-                    if(httpLoggingInterceptor!=null){
+                    if (httpLoggingInterceptor != null) {
                         CLogUtils.e("拿到 拦截器 实例  ");
                         interceptors.add(httpLoggingInterceptor);
                     }
@@ -405,19 +408,21 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             //okhttp3.logging.HttpLoggingInterceptor
             mHttpLoggingInterceptor = Class.forName("okhttp3.logging.HttpLoggingInterceptor", true, mLoader);
             //okhttp3.logging.HttpLoggingInterceptor$Logger
-            mLoggerClass = Class.forName("okhttp3.logging.HttpLoggingInterceptor$Logger", true, mLoader);
+            mHttpLoggingInterceptorLoggerClass = Class.forName("okhttp3.logging.HttpLoggingInterceptor$Logger", true, mLoader);
 
-            if (mHttpLoggingInterceptor != null && mLoggerClass != null) {
+            if (mHttpLoggingInterceptor != null && mHttpLoggingInterceptorLoggerClass != null) {
                 CLogUtils.e("拿到了 拦截器 log");
                 return InitInterceptor(false);
             }
 
         } catch (ClassNotFoundException e) {
             CLogUtils.e("拦截器初始化出现异常  ClassNotFoundException  " + e.getMessage());
-            if(mFieldArrayList.size()==2){
-               //混淆 无法 动态 加载
-                CLogUtils.e("无法 找到 HttpLoggingInterceptor  和 HttpLoggingInterceptor$Logger  通过Hook底层 实现 ");
-                HookGetOutPushStream();
+            if (mFieldArrayList.size() == 2) {
+                //混淆 无法 动态 加载
+
+//                HookGetOutPushStream();
+
+                getOkHttpLogging();
             }
             CLogUtils.e("开始 动态 加载 初始化 ");
             // 没有 混淆 可以动态 加载
@@ -442,21 +447,117 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         return null;
     }
 
+    private void getOkHttpLogging() {
+        if (OkHttpLoggerList.size() != 0) {
+            try {
+                //ArrayList<Class> objects = new ArrayList<>();
+                for (String stringName : OkHttpLoggerList) {
+                    //objects.add(Class.forName(stringName, true, mLoader));
+                    Class<?> aClass = Class.forName(stringName, true, mLoader);
+                    if(isHttpLoggingInterceptor(aClass)){
+                        mHttpLoggingInterceptor=aClass;
+                        //拿到 里面的接口类 名字
+                        CLogUtils.e("找到了  Httplogger ");
+                        initLoggingInterceptor2(aClass);
+                        return;
+                    }
+                }
+                //全部的类都没有找到复合相关的 就开始 Hook底层 函数
+                HookGetOutPushStream();
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+        } else {
+            HookGetOutPushStream();
+        }
+    }
+
+    private void initLoggingInterceptor2(Class<?> aClass) {
+        try {
+            CLogUtils.e("开始查找 logger ");
+            for (String stringName : OkHttpLoggerList) {
+                Class<?> stringNameClass = Class.forName(stringName, true, mLoader);
+                //包含外部类 并且 是 接口
+                if(stringName.contains(aClass.getName()+"$")&&stringNameClass.isInterface()){
+                    mHttpLoggingInterceptorLoggerClass=stringNameClass;
+                }
+            }
+            if(mHttpLoggingInterceptor != null){
+                InitInterceptor2();
+            }
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+    private boolean isHttpLoggingInterceptor(Class<?> aClass) {
+        int CharsetCount = 0;
+        int FinalCount = 0;
+        Field[] declaredFields = aClass.getDeclaredFields();
+        for (int i = 0; i < declaredFields.length; i++) {
+            String type = declaredFields[i].getType().getName();
+            //Object o = declaredFields[i].get(aClass);
+            if (type.contains("java.nio.charset.Charset") && Modifier.isFinal(declaredFields[i].getModifiers())) {
+                CharsetCount++;
+            }
+            if(Modifier.isFinal(declaredFields[i].getModifiers())){
+                FinalCount++;
+            }
+        }
+        if(FinalCount==2&&CharsetCount==1&&declaredFields.length>=3){
+            return true;
+        }
+        return false;
+    }
+
     private void HookGetOutPushStream() {
+        CLogUtils.e("无法 找到 HttpLoggingInterceptor  和 HttpLoggingInterceptor$Logger  通过Hook底层 实现 ");
 
     }
+
+    private void InitInterceptor2() {
+        try {
+            Object logger = Proxy.newProxyInstance(mLoader, new Class[]{mHttpLoggingInterceptorLoggerClass}, Hook.this);
+
+            CLogUtils.e("拿到  动态代理的 class");
+            Object loggingInterceptor = mHttpLoggingInterceptor.getConstructor(mHttpLoggingInterceptorLoggerClass).newInstance(logger);
+
+
+        } catch (InstantiationException e) {
+            CLogUtils.e("拦截器初始化出现异常  InstantiationException  " + e.getMessage());
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            CLogUtils.e("拦截器初始化出现异常  IllegalAccessException  " + e.getMessage());
+
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            CLogUtils.e("拦截器初始化出现异常  InvocationTargetException  " + e.getMessage());
+
+            e.printStackTrace();
+        } catch (NoSuchMethodException e) {
+            CLogUtils.e("拦截器初始化出现异常  NoSuchMethodException  " + e.getMessage());
+
+            e.printStackTrace();
+        }
+
+
+    }
+
+
 
     private Object InitInterceptor(boolean isDexLoader) throws InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, ClassNotFoundException {
         CLogUtils.e("拿到  HttpLoggingInterceptor 和 logger ");
         //通过 动态代理 拿到 这个 接口 实体类
         Object logger;
         if (isDexLoader) {
-            logger = Proxy.newProxyInstance(mDexClassLoader, new Class[]{mLoggerClass}, Hook.this);
+            logger = Proxy.newProxyInstance(mDexClassLoader, new Class[]{mHttpLoggingInterceptorLoggerClass}, Hook.this);
         } else {
-            logger = Proxy.newProxyInstance(mLoader, new Class[]{mLoggerClass}, Hook.this);
+            logger = Proxy.newProxyInstance(mLoader, new Class[]{mHttpLoggingInterceptorLoggerClass}, Hook.this);
         }
         CLogUtils.e("拿到  动态代理的 class");
-        Object loggingInterceptor = mHttpLoggingInterceptor.getConstructor(mLoggerClass).newInstance(logger);
+        Object loggingInterceptor = mHttpLoggingInterceptor.getConstructor(mHttpLoggingInterceptorLoggerClass).newInstance(logger);
         CLogUtils.e("拿到  拦截器的实体类  ");
         Object level;
         if (isDexLoader) {
@@ -478,14 +579,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     private Object initLoggingInterceptor() {
 
 
-
-
-
-
-
-
-
-
         File dexOutputDir = mOtherContext.getDir("dex", 0);
 
         CLogUtils.e("dexOutputDir  dex  666 " + dexOutputDir.getAbsolutePath());
@@ -497,8 +590,8 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         mDexClassLoader = new DexClassLoader(INTERCEPTORPATH, dexOutputDir.getAbsolutePath(), null, mLoader);
         try {
             mHttpLoggingInterceptor = mDexClassLoader.loadClass("okhttp3.logging.HttpLoggingInterceptor");
-            mLoggerClass = mDexClassLoader.loadClass("okhttp3.logging.HttpLoggingInterceptor$Logger");
-            if (mLoggerClass != null && mHttpLoggingInterceptor != null) {
+            mHttpLoggingInterceptorLoggerClass = mDexClassLoader.loadClass("okhttp3.logging.HttpLoggingInterceptor$Logger");
+            if (mHttpLoggingInterceptorLoggerClass != null && mHttpLoggingInterceptor != null) {
                 CLogUtils.e("动态 加载 classloader 成功 ");
                 return InitInterceptor(true);
             }
@@ -516,7 +609,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             e.printStackTrace();
         } catch (InvocationTargetException e) {
             CLogUtils.e("动态 加载异常  InvocationTargetException" + e.getMessage());
-
             e.printStackTrace();
         }
         return null;
