@@ -15,7 +15,10 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Proxy;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
 
@@ -27,8 +30,10 @@ import de.robv.android.xposed.XSharedPreferences;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
+import q296488320.xposedinto.LogImp.LogInterceptorImp;
 import q296488320.xposedinto.config.Key;
 import q296488320.xposedinto.utils.CLogUtils;
+import q296488320.xposedinto.utils.FileUtils;
 
 
 /**
@@ -108,10 +113,9 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
     //存放 全部类名字的 集合
     private List<String> AllClassNameList = new ArrayList<>();
-    ;
 
     //存放 全部类的 集合
-    private List<Class> mClassList = new ArrayList<>();
+    public static volatile List<Class> mClassList = new ArrayList<>();
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
@@ -120,6 +124,9 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             shared.reload();
             InvokPackage = shared.getString("APP_INFO", "");
             MODEL = shared.getString("MODEL", "1");
+            if(MODEL.equals("4")){
+                isShowStacktTrash=true;
+            }
             //先重启 选择 好 要进行Hook的 app
             if (InvokPackage == null || InvokPackage.equals("")) {
                 return;
@@ -154,6 +161,11 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             mOtherContext = (Context) param.args[0];
                             mLoader = mOtherContext.getClassLoader();
                             CLogUtils.e("拿到 classloader");
+                            if(MODEL.equals("3")||MODEL.equals("4")){
+                                CLogUtils.e("使用了 通杀模式 ");
+                                HookGetOutPushStream();
+                                return;
+                            }
                             HookOKClient();
                         }
                     }
@@ -335,7 +347,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             Enumeration<String> enumeration = df.entries();
             while (enumeration.hasMoreElements()) {//遍历
                 String className = (String) enumeration.nextElement();
-                if (className.contains("okhttp3")) {//在当前所有可执行的类里面查找包含有该包名的所有类
+                if (className.contains("okhttp3")||className.contains("okio")) {//在当前所有可执行的类里面查找包含有该包名的所有类
                     classNameList.add(className);
                     if (className.contains("okhttp3.logging")) {
                         OkHttpLoggerList.add(className);
@@ -405,7 +417,8 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         interceptors.add(httpLoggingInterceptor);
                     } else {
                         CLogUtils.e("没有 拿到 拦截器   ");
-                        HookGetOutPushStream();
+                        //HookGetOutPushStream();
+                        interceptors.add(getHttpLoggingInterceptorImp());
                     }
                 } else {
                     CLogUtils.e("mFieldArrayList 的 集合 不是 2  ");
@@ -416,6 +429,51 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             CLogUtils.e("Hook到 build但出现 异常 " + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+
+
+    /**
+     * 自实现 loggerInterceptor 类
+     */
+    private Object getHttpLoggingInterceptorImp() {
+       Class InterceptorClass = getInterceptorClass();
+       Object InterceptorObject;
+       if(InterceptorClass!=null){
+           LogInterceptorImp logInterceptorImp = new LogInterceptorImp();
+           InterceptorObject = Proxy.newProxyInstance(mLoader, new Class[]{InterceptorClass}, logInterceptorImp);
+           return InterceptorObject;
+       }else {
+           CLogUtils.e("getInterceptorClass 返回 Null");
+           return null;
+       }
+    }
+
+    private Class getInterceptorClass() {
+        for(Class mClass:mClassList){
+            if(isInterceptorClass(mClass)){
+                return mClass;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 判断是否是 Interceptor
+     * @param mClass
+     * @return
+     */
+    private boolean isInterceptorClass(Class mClass) {
+        Method[] declaredMethods = mClass.getDeclaredMethods();
+        //一个方法 并且 方法参数 是 内部的接口
+        if(declaredMethods.length==1&&mClass.isInterface()){
+            Method declaredMethod = declaredMethods[0];
+            Class<?>[] parameterTypes = declaredMethod.getParameterTypes();
+            if(parameterTypes.length==1&&parameterTypes[0].getName().contains(mClass.getName())){
+                return true;
+            }
+        }
+        return false;
     }
 
 
@@ -557,35 +615,50 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
      * Hook 底层的方法
      */
     private void HookGetOutPushStream() {
-        CLogUtils.e("开始 Hook底层 实现 ");
 
+        CLogUtils.e("开始 Hook底层 实现 ");
+        //java.net.SocketInputStream
         try {
-            SocketInputStreamClass = Class.forName("java.net.SocketInputStream ", true, mLoader);
+            SocketInputStreamClass = Class.forName("java.net.SocketOutputStream", true, mLoader);
             if(SocketInputStreamClass==null){
-                SocketInputStreamClass = Class.forName("java.net.SocketInputStream ");
+                SocketInputStreamClass = Class.forName("java.net.SocketOutputStream");
             }
-            XposedHelpers.findAndHookMethod(SocketInputStreamClass, "read",
-                    byte[].class,new XC_MethodHook() {
+            if(SocketInputStreamClass!=null){
+                CLogUtils.e("拿到 InputStream ");
+            }
+            XposedHelpers.findAndHookMethod(SocketInputStreamClass, "write",
+                    byte[].class,
+                    int.class,
+                    int.class,
+//                    int.class,
+                    new XC_MethodHook() {
                 @Override
                 protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                     super.beforeHookedMethod(param);
-                    CLogUtils.e("Hook 到 read 函数  ");
+                    StringBuffer TraceString=new StringBuffer();
                     if(isShowStacktTrash){
                         try {
                             int b = 1/0;
                         }catch (Exception e){
                             StackTraceElement[] stackTrace = e.getStackTrace();
+                            TraceString.append(" --------------------------  >>>> "+"\n");
                             for(StackTraceElement stackTraceElement:stackTrace){
-                                CLogUtils.e("   栈信息    类名  "+stackTraceElement.getClassName() +"   方法名字     "+stackTraceElement.getMethodName());
+                                //FileUtils.SaveString(  );
+                                TraceString.append( "   栈信息      " + stackTraceElement.getClassName() + "." + stackTraceElement.getMethodName()+"\n");
                             }
+                            TraceString.append("<<<< --------------------------  "+"\n") ;
                         }
                     }
-                    byte[] bytes= (byte[]) param.args[0];
-                    CLogUtils.e("------------>>>  "+ new String(bytes));
+                    TraceString.append("<<<<------------------------------>>>>>  \n"+
+                            new String((byte[]) param.args[0], StandardCharsets.UTF_8)
+                            +"\n <<<<------------------------------>>>>>" +"\n" );
+
+                    FileUtils.SaveString(new SimpleDateFormat("MM-dd-hh-mm-ss").format(new Date())+"\n"+"  "+
+                            TraceString.toString(),mOtherContext.getPackageName());
                 }
             });
         } catch (ClassNotFoundException e) {
-            CLogUtils.e("HookGetOutPushStream   ClassNotFoundException  " +e.getMessage());
+            CLogUtils.e("HookGetOutPushStream   ClassNotFoundException  " +e.getMessage() );
             e.printStackTrace();
         }
     }

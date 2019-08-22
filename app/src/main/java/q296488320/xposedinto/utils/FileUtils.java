@@ -1,13 +1,18 @@
 package q296488320.xposedinto.utils;
 
 import android.content.Context;
+import android.os.Environment;
 import android.util.Log;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import static android.content.ContentValues.TAG;
 
@@ -29,11 +34,11 @@ public class FileUtils {
      * @param fileAssetPath assets中的目录
      * @param fileSdPath 要复制到sd卡中的目录
      */
-    public static void Assets2Sd(Context context, String fileAssetPath, String fileSdPath){
+    public static void Assets2Sd(Context context, String fileAssetPath, String fileSdPath) {
         //测试把文件直接复制到sd卡中 fileSdPath完整路径
         File file = new File(fileSdPath);
         if (!file.exists()) {
-            Log.d(TAG,"************文件不存在,文件创建");
+            Log.d(TAG, "************文件不存在,文件创建");
             try {
                 copyBigDataToSD(context, fileAssetPath, fileSdPath);
                 Log.d(TAG, "************拷贝成功");
@@ -42,19 +47,18 @@ public class FileUtils {
                 e.printStackTrace();
             }
         } else {
-            Log.d(TAG,"************文件夹存在,文件存在");
+            Log.d(TAG, "************文件夹存在,文件存在");
         }
 
     }
-    public static void copyBigDataToSD(Context context, String fileAssetPath, String strOutFileName) throws IOException
-    {
+
+    public static void copyBigDataToSD(Context context, String fileAssetPath, String strOutFileName) throws IOException {
         InputStream myInput;
         OutputStream myOutput = new FileOutputStream(strOutFileName);
         myInput = context.getAssets().open(fileAssetPath);
         byte[] buffer = new byte[1024];
         int length = myInput.read(buffer);
-        while(length > 0)
-        {
+        while (length > 0) {
             myOutput.write(buffer, 0, length);
             length = myInput.read(buffer);
         }
@@ -63,5 +67,40 @@ public class FileUtils {
         myInput.close();
         myOutput.close();
     }
+
+    public static void SaveString(String str,String packageName) {
+        FileWriter fw = null;
+        try {
+            if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+                File sdCardDir = Environment.getExternalStorageDirectory();//获取SDCard目录,2.2的时候为:/mnt/sdcart
+                // 2.1的时候为：/sdcard，所以使用静态方法得到路径会好一点。
+                //String s=Environment.getExternalStorageDirectory();
+                File filedir = new File(sdCardDir + File.separator + "OkHttpCat/Http/");  // 这里的AA为创建的AA文件夹，在根目录下
+                if (!filedir.exists()) {
+                    filedir.mkdirs();
+                }
+
+
+                File saveFile = new File(filedir, packageName + ".txt");
+                fw = new FileWriter(saveFile, true);
+                PrintWriter pw = new PrintWriter(fw);
+                pw.println(str);
+                pw.flush();
+                try {
+                    fw.flush();
+                    pw.close();
+                    fw.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+        } catch (IOException e) {
+
+            e.printStackTrace();
+
+        }
+    }
+
 
 }

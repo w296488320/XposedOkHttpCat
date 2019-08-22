@@ -3,15 +3,16 @@
       xmlns:app="http://schemas.android.com/apk/res-auto"
     >
 
-    <item
-        android:title="Add"
-        android:icon="@drawable/menu"
-        app:showAsAction="ifRoom">
+    <!--<item-->
+        <!--android:title="Add"-->
+        <!--android:icon="@drawable/menu"-->
+        <!--app:showAsAction="ifRoom">-->
 
-        <menu >
+        <!--<menu >-->
             <item
-                android:id="@+id/showSysApp"
-                android:title="显示系统应用"/>
+                app:showAsAction="ifRoom"
+                android:id="@+id/AddQQGroup"
+                android:title="加入QQ群"/>
 
             <!--<item-->
                 <!--android:id="@+id/create"-->
@@ -22,8 +23,8 @@
                 <!--android:title="@string/addContacts"-->
                 <!--/>-->
 
-        </menu>
-    </item>
+        <!--</menu>-->
+    <!--</item>-->
 
 
 

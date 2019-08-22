@@ -99,8 +99,9 @@ public class MainListViewAdapter extends BaseAdapter{
     private void showMutilDialog(int position) {
         //[1]构造对话框的实例
         AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
-        builder.setTitle("");
-        final String[] items = {"模式1", "模式2"};
+        //builder.setMessage("");
+        builder.setTitle("模式1 和 模式2 主要 针对 OkHttp 通杀是针对底层函数\n 如果需要分析发包的地方 可以选择 打印调用栈");
+        final String[] items = {"模式1", "模式2","通杀模式","通杀模式(并打印调用栈)"};
         //builder.setMessage("默认是 模式1 如果 模式1 没有效果 切换 模式2 并重新打开 ");
         builder.setSingleChoiceItems(items, -1, (dialog, which) -> {
             CLogUtils.e("whick  "+which);
@@ -109,8 +110,12 @@ public class MainListViewAdapter extends BaseAdapter{
                 SpUtil.putString(mContext,MODEL,"1");
             }else  if(which==1){
                 SpUtil.putString(mContext,MODEL,"2");
+            }else if(which==2){
+                SpUtil.putString(mContext,MODEL,"3");
+            }else if(which==3){
+                SpUtil.putString(mContext,MODEL,"4");
             }
-            ToastUtils.showToast(App.getContext(),"保存成功"+ data.get(position).packageName +"   "+( which==0?"模式1":"模式2") );
+            ToastUtils.showToast(App.getContext(),"保存成功"+ data.get(position).packageName +"   "+ items[which]);
             dialog.dismiss();
         });
         //[3]展示对话框  和toast一样 一定要记得show出来
