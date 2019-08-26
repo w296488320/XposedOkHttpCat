@@ -199,7 +199,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
     private void HookAndInitProguardClass() {
         //先拿到 app里面全部的class
-        AllClassNameList = getClassName();
+        AllClassNameList = getAllClassName();
         //第一步 先开始 拿到 OkHttp 里面的 类  如Client 和 Builder
         initAllClass();
         getClientClass();
@@ -334,31 +334,63 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     }
 
 
-    private List<String> getClassName() {
-        OkHttpLoggerList.clear();
+
+    private List<String> getAllClassName() {
+        CLogUtils.e("开始 获取全部的类名  ");
         List<String> classNameList = new ArrayList<String>();
         try {
-            //通过DexFile查找当前的APK中可执行文件
-            // CLogUtils.e("this.getPackageCodePath()  "+this.getPackageCodePath());
-
-            DexFile df = new DexFile(mOtherContext.getPackageCodePath());
-
-            //获取df中的元素  这里包含了所有可执行的类名 该类名包含了包名+类名的方式
-            Enumeration<String> enumeration = df.entries();
-            while (enumeration.hasMoreElements()) {//遍历
-                String className = (String) enumeration.nextElement();
-                if (className.contains("okhttp3")||className.contains("okio")) {//在当前所有可执行的类里面查找包含有该包名的所有类
-                    classNameList.add(className);
-                    if (className.contains("okhttp3.logging")) {
-                        OkHttpLoggerList.add(className);
+            //系统的 classloader是 Pathclassloader需要 拿到他的 父类 BaseClassloader才有 pathList
+            Field pathListField = mLoader.getClass().getSuperclass().getDeclaredField("pathList");
+            if(pathListField!=null) {
+                pathListField.setAccessible(true);
+                Object dexPathList = pathListField.get(mLoader);
+                Field dexElementsField = dexPathList.getClass().getDeclaredField("dexElements");
+                if(dexElementsField!=null){
+                    dexElementsField.setAccessible(true);
+                    Object[] dexElements = (Object[]) dexElementsField.get(dexPathList);
+                    for(int i=0;i<dexElements.length;i++){
+                        Field dexFileField = dexElements[i].getClass().getDeclaredField("dexFile");
+                        if(dexFileField!=null){
+                            dexFileField.setAccessible(true);
+                            DexFile dexFile = (DexFile) dexFileField.get(dexElements[i]);
+                            getDexFileClassName(dexFile,classNameList);
+                        }else {
+                            CLogUtils.e("获取 dexFileField Null ");
+                        }
                     }
+                    return classNameList;
+                }else {
+                    CLogUtils.e("获取 dexElements Null ");
                 }
+            }else {
+                CLogUtils.e("获取 pathListField Null ");
             }
-        } catch (IOException e) {
+            //获取 app包里的
+            //DexFile df = new DexFile(mOtherContext.getPackageCodePath());
+        } catch (NoSuchFieldException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
             e.printStackTrace();
         }
-        return classNameList;
+        return null;
     }
+
+    private  void getDexFileClassName(DexFile dexFile,List<String> classNameList){
+        //获取df中的元素  这里包含了所有可执行的类名 该类名包含了包名+类名的方式
+        Enumeration<String> enumeration = dexFile.entries();
+        while (enumeration.hasMoreElements()) {//遍历
+            String className = (String) enumeration.nextElement();
+            if (className.contains("okhttp3")||className.contains("okio")) {//在当前所有可执行的类里面查找包含有该包名的所有类
+                classNameList.add(className);
+                if (className.contains("okhttp3.logging")) {
+                    OkHttpLoggerList.add(className);
+                }
+            }
+            //CLogUtils.e("类名  "+className);
+            classNameList.add(className);
+        }
+    }
+
 
     private void invoke() {
         CLogUtils.e("发现对方使用 okhttp  开始hook ");
