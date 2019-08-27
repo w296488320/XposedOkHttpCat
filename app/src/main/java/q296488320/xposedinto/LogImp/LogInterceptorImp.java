@@ -1,11 +1,13 @@
 package q296488320.xposedinto.LogImp;
 
+import java.io.EOFException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.charset.Charset;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import q296488320.xposedinto.XpHook.Hook;
@@ -37,6 +39,7 @@ public class LogInterceptorImp implements InvocationHandler {
             return null;
         } else {
             CLogUtils.e("getRequestObject   拿到 RequestObject  名字是   " + RequestObject.getClass().getName());
+
         }
         ResponseObject = getResponseObject(ChainObject, RequestObject);
 
@@ -97,24 +100,127 @@ public class LogInterceptorImp implements InvocationHandler {
                     Charset contentTypeMethodAndInvoke = getContentTypeMethodAndInvoke(mediaTypeClass, RequestBodyObject);
                     if (contentTypeMethodAndInvoke != null) {
                         charset = contentTypeMethodAndInvoke;
-
-                        isPlaintext(bufferObject);
+                        if (isPlaintext(bufferObject)) {
+                            //logger.log(buffer.readString(charset));
+                            stringBuffer.append(getReadStringAndInvoke(bufferObject, charset) + "\n");
+                        }
+                    } else {
+                        CLogUtils.e("contentTypeMethodAndInvoke  == null ");
                     }
-
-
-
-
                 } else {
                     CLogUtils.e("没有成功 设置  requestBody.writeTo(buffer) ");
                 }
             }
         }
 
+        long startNs = System.nanoTime();//返回的是纳秒
+
+        long tookMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs);
+        
+        Class responseBodyClass = getResponseBodyClass();
+
+        getResponseBodyMethodAndInvoke(ResponseObject);
+
 
         return ResponseObject;
     }
 
-    private void isPlaintext(Object bufferObject) {
+    private Class getResponseBodyClass() {
+        //本身 是抽象类  抽象方法 大于2 个
+        //其中有一个 抽象方法 返回的 类型是 MediaType 参数 为 0个
+        Class mediaTypeClass = getMediaTypeClass();
+        Method[] declaredMethods = mediaTypeClass.getDeclaredMethods();
+        for (Class Mclass : Hook.mClassList) {
+            if (Modifier.isAbstract(Mclass.getModifiers())
+                    && declaredMethods.length >= 2
+            ) {
+                for (Method method : declaredMethods) {
+                    if (method.getReturnType().getName().equals(mediaTypeClass.getName()) && method.getParameterTypes().length == 0) {
+                        return Mclass;
+                    }
+                }
+            }
+        }
+        return null;
+
+    }
+
+    private void getResponseBodyMethodAndInvoke(Object responseObject) {
+        Class mediaTypeClass = getMediaTypeClass();
+
+
+    }
+
+    /**
+     * 获取  request.method()
+     *
+     * @param requestObject
+     */
+    private String getMethodInRequest(Object requestObject) {
+        Method[] declaredMethods = requestObject.getClass().getDeclaredMethods();
+        for (Method method : declaredMethods) {
+            if (method.getParameterTypes().length == 0 &&
+                    method.getReturnType().getName().equals(String.class.getName())
+            ) {
+                method.setAccessible(true);
+                try {
+                    return (String) method.invoke(requestObject);
+                } catch (IllegalAccessException e) {
+                    CLogUtils.e("getMethodInRequest   IllegalAccessException   " + e.getMessage());
+
+                    e.printStackTrace();
+                } catch (InvocationTargetException e) {
+                    CLogUtils.e("getMethodInRequest   InvocationTargetException   " + e.getMessage());
+
+                    e.printStackTrace();
+                }
+            }
+        }
+        return "";
+    }
+
+    private String getReadStringAndInvoke(Object bufferObject, Charset charset) {
+        Method[] declaredMethods = bufferObject.getClass().getDeclaredMethods();
+        for (Method method : declaredMethods) {
+            if (method.getReturnType().equals(String.class.getName())
+                    && method.getParameterTypes().length == 1 &&
+                    method.getParameterTypes()[0].getName().equals(Charset.class.getName())) {
+                method.setAccessible(true);
+                try {
+                    return (String) method.invoke(bufferObject, charset);
+                } catch (IllegalAccessException e) {
+                    CLogUtils.e("getReadStringAndInvoke   IllegalAccessException   " + e.getMessage());
+
+                    e.printStackTrace();
+                } catch (InvocationTargetException e) {
+                    CLogUtils.e("InvocationTargetException   InvocationTargetException   " + e.getMessage());
+
+                    e.printStackTrace();
+                }
+            }
+        }
+        return "";
+    }
+
+
+    public boolean exhausted(Object prefix) throws Exception {
+        Field[] declaredFields = prefix.getClass().getDeclaredFields();
+        for (Field field : declaredFields) {
+            if (field.getType().getName().equals(long.class.getName())) {
+                field.setAccessible(true);
+                try {
+                    long aLong = field.getLong(prefix);
+                    return aLong == 0L;
+                } catch (IllegalAccessException e) {
+                    CLogUtils.e("exhausted   " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+        }
+        throw new Exception("没找到 this.size");
+    }
+
+    private boolean isPlaintext(Object bufferObject) throws Exception {
         try {
 
 
@@ -132,20 +238,43 @@ public class LogInterceptorImp implements InvocationHandler {
 
             Object prefix = bufferObject.getClass().newInstance();
             Field[] fields = bufferObject.getClass().getFields();
-            long bufferObjectSize=-1L;
-            for(Field field :fields){
-                if(field.getType().getName().equals(long.class.getName())){
+            long bufferObjectSize = -1L;
+            for (Field field : fields) {
+                if (field.getType().getName().equals(long.class.getName())) {
                     field.setAccessible(true);
-                    bufferObjectSize   = field.getLong(bufferObject);
+                    bufferObjectSize = field.getLong(bufferObject);
                 }
             }
-            if(bufferObjectSize!=-1L){
+
+
+            if (bufferObjectSize != -1L) {
                 long byteCount = bufferObjectSize < 64L ? bufferObjectSize : 64L;
+                //            buffer.copyTo(prefix, 0L, byteCount);
+                getCopyToMethodAndInvoke(bufferObject, prefix, byteCount);
 
+//                for(int i = 0; i < 16 && !prefix.exhausted(); ++i) {
+//                    int codePoint = prefix.readUtf8CodePoint();
+//                    if (Character.isISOControl(codePoint) && !Character.isWhitespace(codePoint)) {
+//                        return false;
+//                    }
+//                }
 
-
-            }else {
+                Method readUtf8CodePointMethod = getReadUtf8CodePointMethod(prefix);
+                if (readUtf8CodePointMethod != null) {
+                    for (int i = 0; i < 16 && !exhausted(prefix); ++i) {
+                        int codePoint = (int) readUtf8CodePointMethod.invoke(prefix);
+                        if (Character.isISOControl(codePoint) && !Character.isWhitespace(codePoint)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                } else {
+                    CLogUtils.e("没拿到    readUtf8CodePointMethod ");
+                    throw new Exception("没拿到    readUtf8CodePointMethod");
+                }
+            } else {
                 CLogUtils.e("没拿到    bufferObjectSize ");
+                throw new Exception("没拿到    bufferObjectSize");
             }
         } catch (InstantiationException e) {
             CLogUtils.e("isPlaintext   InstantiationException   " + e.getMessage());
@@ -153,6 +282,50 @@ public class LogInterceptorImp implements InvocationHandler {
         } catch (IllegalAccessException e) {
             CLogUtils.e("isPlaintext   IllegalAccessException   " + e.getMessage());
             e.printStackTrace();
+        } catch (Exception e) {
+            CLogUtils.e("isPlaintext   Exception   " + e.getMessage());
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    private Method getReadUtf8CodePointMethod(Object prefix) {
+        Method[] declaredMethods = prefix.getClass().getDeclaredMethods();
+        for (Method method : declaredMethods) {
+            if (method.getParameterTypes().length == 0 && method.getReturnType().getName().equals(int.class.getName())) {
+                //public int readUtf8CodePoint() throws EOFException   这块 是 异常类型 是1 个 类型是  EOFException
+                if (method.getExceptionTypes().length == 1 && method.getExceptionTypes()[0].getName().equals(EOFException.class.getName())) {
+                    method.setAccessible(true);
+                    return method;
+                }
+            }
+        }
+        return null;
+    }
+
+    private void getCopyToMethodAndInvoke(Object bufferObject, Object prefix, long byteCount) {
+        Method[] declaredMethods = bufferObject.getClass().getDeclaredMethods();
+        for (Method method : declaredMethods) {
+            //返回值是 Buff
+            if (method.getReturnType().equals(bufferObject.getClass().getName())) {
+                //参数 长度是 3 参数 类型 Buff long longg
+                if (method.getParameterTypes().length == 3
+                        && method.getParameterTypes()[0].getName().equals(bufferObject.getClass().getName())
+                        && method.getParameterTypes()[1].getName().equals(long.class.getName())
+                        && method.getParameterTypes()[2].getName().equals(long.class.getName())
+                ) {
+                    method.setAccessible(true);
+                    try {
+                        method.invoke(bufferObject, prefix, 0L, byteCount);
+                    } catch (IllegalAccessException e) {
+                        CLogUtils.e("isPlaintext   IllegalAccessException   " + e.getMessage());
+                        e.printStackTrace();
+                    } catch (InvocationTargetException e) {
+                        CLogUtils.e("getcopyToMethodAndInvoke   InvocationTargetException   " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                }
+            }
         }
     }
 

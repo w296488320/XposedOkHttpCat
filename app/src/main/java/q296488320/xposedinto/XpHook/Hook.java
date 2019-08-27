@@ -308,6 +308,8 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
     private boolean isClient(@NonNull Class<?> mClass) {
         int typeCount = 0;
+        int StaticCount = 0;
+
         //getDeclaredFields 是个 获取 全部的
         Field[] fields = mClass.getDeclaredFields();
 
@@ -322,10 +324,14 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                 //CLogUtils.e(" 复合 规则 该 Field是      " + field.getName() + " ");
                 typeCount++;
             }
+            if (type.contains(Key.ListType) && Modifier.isFinal(field.getModifiers())&& Modifier.isStatic(field.getModifiers())) {
+                //CLogUtils.e(" 复合 规则 该 Field是      " + field.getName() + " ");
+                StaticCount++;
+            }
         }
         //CLogUtils.e("field 符合标准   个数 是    " + typeCount);
 
-        if (typeCount == 6) {
+        if (StaticCount>=2&&typeCount == 6 && mClass.getInterfaces().length>=2) {
             CLogUtils.e(" 该类的名字是  " + mClass.getName());
             return true;
         }
