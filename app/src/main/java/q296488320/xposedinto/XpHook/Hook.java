@@ -118,7 +118,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     public static volatile List<Class> mClassList = new ArrayList<>();
 
     @Override
-    public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) throws Throwable {
+    public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
         try {
             shared = new XSharedPreferences("Xposed.Okhttp.Cat", "config");
             shared.reload();
@@ -343,7 +343,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
     private List<String> getAllClassName() {
         CLogUtils.e("开始 获取全部的类名  ");
-        List<String> classNameList = new ArrayList<String>();
+        List<String> classNameList = new ArrayList<>();
         try {
             //系统的 classloader是 Pathclassloader需要 拿到他的 父类 BaseClassloader才有 pathList
             Field pathListField = mLoader.getClass().getSuperclass().getDeclaredField("pathList");
@@ -354,13 +354,13 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                 if(dexElementsField!=null){
                     dexElementsField.setAccessible(true);
                     Object[] dexElements = (Object[]) dexElementsField.get(dexPathList);
-                    for(int i=0;i<dexElements.length;i++){
-                        Field dexFileField = dexElements[i].getClass().getDeclaredField("dexFile");
-                        if(dexFileField!=null){
+                    for (Object dexElement : dexElements) {
+                        Field dexFileField = dexElement.getClass().getDeclaredField("dexFile");
+                        if (dexFileField != null) {
                             dexFileField.setAccessible(true);
-                            DexFile dexFile = (DexFile) dexFileField.get(dexElements[i]);
-                            getDexFileClassName(dexFile,classNameList);
-                        }else {
+                            DexFile dexFile = (DexFile) dexFileField.get(dexElement);
+                            getDexFileClassName(dexFile, classNameList);
+                        } else {
                             CLogUtils.e("获取 dexFileField Null ");
                         }
                     }
@@ -385,7 +385,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         //获取df中的元素  这里包含了所有可执行的类名 该类名包含了包名+类名的方式
         Enumeration<String> enumeration = dexFile.entries();
         while (enumeration.hasMoreElements()) {//遍历
-            String className = (String) enumeration.nextElement();
+            String className = enumeration.nextElement();
             if (className.contains("okhttp3")||className.contains("okio")) {//在当前所有可执行的类里面查找包含有该包名的所有类
                 classNameList.add(className);
                 if (className.contains("okhttp3.logging")) {
@@ -516,7 +516,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    public Object invoke(Object proxy, Method method, Object[] args) {
         Log.e("XposedInto===", (String) args[0]);
         return null;
     }
@@ -633,20 +633,17 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         int CharsetCount = 0;
         int FinalCount = 0;
         Field[] declaredFields = aClass.getDeclaredFields();
-        for (int i = 0; i < declaredFields.length; i++) {
-            String type = declaredFields[i].getType().getName();
+        for (Field declaredField : declaredFields) {
+            String type = declaredField.getType().getName();
             //Object o = declaredFields[i].get(aClass);
-            if (type.contains("java.nio.charset.Charset") && Modifier.isFinal(declaredFields[i].getModifiers())) {
+            if (type.contains("java.nio.charset.Charset") && Modifier.isFinal(declaredField.getModifiers())) {
                 CharsetCount++;
             }
-            if (Modifier.isFinal(declaredFields[i].getModifiers())) {
+            if (Modifier.isFinal(declaredField.getModifiers())) {
                 FinalCount++;
             }
         }
-        if (FinalCount == 2 && CharsetCount == 1 && declaredFields.length >= 3) {
-            return true;
-        }
-        return false;
+        return FinalCount == 2 && CharsetCount == 1 && declaredFields.length >= 3;
     }
 
     /**
@@ -682,14 +679,12 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             TraceString.append(" --------------------------  >>>> "+"\n");
                             for(StackTraceElement stackTraceElement:stackTrace){
                                 //FileUtils.SaveString(  );
-                                TraceString.append( "   栈信息      " + stackTraceElement.getClassName() + "." + stackTraceElement.getMethodName()+"\n");
+                                TraceString.append("   栈信息      ").append(stackTraceElement.getClassName()).append(".").append(stackTraceElement.getMethodName()).append("\n");
                             }
                             TraceString.append("<<<< --------------------------  "+"\n") ;
                         }
                     }
-                    TraceString.append("<<<<------------------------------>>>>>  \n"+
-                            new String((byte[]) param.args[0], StandardCharsets.UTF_8)
-                            +"\n <<<<------------------------------>>>>>" +"\n" );
+                    TraceString.append("<<<<------------------------------>>>>>  \n").append(new String((byte[]) param.args[0], StandardCharsets.UTF_8)).append("\n <<<<------------------------------>>>>>").append("\n");
 
                     FileUtils.SaveString(new SimpleDateFormat("MM-dd-hh-mm-ss").format(new Date())+"\n"+"  "+
                             TraceString.toString(),mOtherContext.getPackageName());
@@ -721,7 +716,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                 HookGetOutPushStream();
             } else {
                 Object invoke = setLevelMethod.invoke(loggingInterceptor, level);
-                CLogUtils.e("调用 setLevel成功  返回对应的  对象    " + invoke.getClass().getName().toString()    );
+                CLogUtils.e("调用 setLevel成功  返回对应的  对象    " + invoke.getClass().getName());
                 return invoke;
             }
 
@@ -747,16 +742,14 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         CLogUtils.e("getSetLevelMethod 需要的参数类型 是 "+level.getName());
 
         Method[] declaredMethods = mHttpLoggingInterceptor.getDeclaredMethods();
-        for (int i = 0; i < declaredMethods.length; i++) {
-
-
-            Class<?>[] parameterTypes = declaredMethods[i].getParameterTypes();
-            CLogUtils.e("该方法的 名字是   "+declaredMethods[i].getName()+"  参数的 个数是  "+parameterTypes.length  );
+        for (Method declaredMethod : declaredMethods) {
+            Class<?>[] parameterTypes = declaredMethod.getParameterTypes();
+            CLogUtils.e("该方法的 名字是   " + declaredMethod.getName() + "  参数的 个数是  " + parameterTypes.length);
             if (parameterTypes.length == 1) {
-                CLogUtils.e("长度是 1 参数类型是  " +  parameterTypes[0].getName() );
+                CLogUtils.e("长度是 1 参数类型是  " + parameterTypes[0].getName());
                 //比较 传入的类型 是 HttpLoggingInterceptor.Level 类的 方法
                 if (parameterTypes[0].getName().equals(level.getName())) {
-                    return declaredMethods[i];
+                    return declaredMethod;
                 }
             }
         }

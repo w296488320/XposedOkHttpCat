@@ -49,7 +49,7 @@ public class LogInterceptorImp implements InvocationHandler {
             CLogUtils.e("没有找到    拿到 ResponseObject  名字是   ");
         }
 
-        stringBuffer.append("\n" + "--------------->>>" + "\n" + InvokeToString(RequestObject) + "\n\n");
+        stringBuffer.append("\n" + "--------------->>>" + "\n").append(InvokeToString(RequestObject)).append("\n\n");
 
         Class headerClass = getHeaderClass();
         if (headerClass != null) {
@@ -102,7 +102,7 @@ public class LogInterceptorImp implements InvocationHandler {
                         charset = contentTypeMethodAndInvoke;
                         if (isPlaintext(bufferObject)) {
                             //logger.log(buffer.readString(charset));
-                            stringBuffer.append(getReadStringAndInvoke(bufferObject, charset) + "\n");
+                            stringBuffer.append(getReadStringAndInvoke(bufferObject, charset)).append("\n");
                         }
                     } else {
                         CLogUtils.e("contentTypeMethodAndInvoke  == null ");
@@ -129,17 +129,21 @@ public class LogInterceptorImp implements InvocationHandler {
         //本身 是抽象类  抽象方法 大于2 个
         //其中有一个 抽象方法 返回的 类型是 MediaType 参数 为 0个
         Class mediaTypeClass = getMediaTypeClass();
-        Method[] declaredMethods = mediaTypeClass.getDeclaredMethods();
-        for (Class Mclass : Hook.mClassList) {
-            if (Modifier.isAbstract(Mclass.getModifiers())
-                    && declaredMethods.length >= 2
-            ) {
-                for (Method method : declaredMethods) {
-                    if (method.getReturnType().getName().equals(mediaTypeClass.getName()) && method.getParameterTypes().length == 0) {
-                        return Mclass;
+        if(mediaTypeClass!=null) {
+            Method[] declaredMethods = mediaTypeClass.getDeclaredMethods();
+            for (Class Mclass : Hook.mClassList) {
+                if (Modifier.isAbstract(Mclass.getModifiers())
+                        && declaredMethods.length >= 2
+                ) {
+                    for (Method method : declaredMethods) {
+                        if (method.getReturnType().getName().equals(mediaTypeClass.getName()) && method.getParameterTypes().length == 0) {
+                            return Mclass;
+                        }
                     }
                 }
             }
+        }else {
+            CLogUtils.e("getResponseBodyClass   getMediaTypeClass    == null ");
         }
         return null;
 
@@ -154,7 +158,7 @@ public class LogInterceptorImp implements InvocationHandler {
     /**
      * 获取  request.method()
      *
-     * @param requestObject
+     * @param requestObject  requestObject
      */
     private String getMethodInRequest(Object requestObject) {
         Method[] declaredMethods = requestObject.getClass().getDeclaredMethods();
@@ -182,7 +186,7 @@ public class LogInterceptorImp implements InvocationHandler {
     private String getReadStringAndInvoke(Object bufferObject, Charset charset) {
         Method[] declaredMethods = bufferObject.getClass().getDeclaredMethods();
         for (Method method : declaredMethods) {
-            if (method.getReturnType().equals(String.class.getName())
+            if (method.getReturnType().getName().equals(String.class.getName())
                     && method.getParameterTypes().length == 1 &&
                     method.getParameterTypes()[0].getName().equals(Charset.class.getName())) {
                 method.setAccessible(true);
@@ -220,7 +224,7 @@ public class LogInterceptorImp implements InvocationHandler {
         throw new Exception("没找到 this.size");
     }
 
-    private boolean isPlaintext(Object bufferObject) throws Exception {
+    private boolean isPlaintext(Object bufferObject) {
         try {
 
 
@@ -307,7 +311,7 @@ public class LogInterceptorImp implements InvocationHandler {
         Method[] declaredMethods = bufferObject.getClass().getDeclaredMethods();
         for (Method method : declaredMethods) {
             //返回值是 Buff
-            if (method.getReturnType().equals(bufferObject.getClass().getName())) {
+            if (method.getReturnType().getName().equals(bufferObject.getClass().getName())) {
                 //参数 长度是 3 参数 类型 Buff long longg
                 if (method.getParameterTypes().length == 3
                         && method.getParameterTypes()[0].getName().equals(bufferObject.getClass().getName())
@@ -372,10 +376,10 @@ public class LogInterceptorImp implements InvocationHandler {
                     int StringFinalType = 0;
                     int PatternTypeCount = 0;
                     for (Field field : declaredFields) {
-                        if (field.getType().getName().equals(String.class) && Modifier.isFinal(field.getModifiers()) && Modifier.isPrivate(field.getModifiers())) {
+                        if (field.getType().getName().equals(String.class.getName()) && Modifier.isFinal(field.getModifiers()) && Modifier.isPrivate(field.getModifiers())) {
                             StringFinalType++;
                         }
-                        if (field.getType().equals(patternClass.getName())) {
+                        if (field.getType().getName().equals(patternClass.getName())) {
                             PatternTypeCount++;
                         }
                         if (StringFinalType >= 4 && PatternTypeCount == 2) {
@@ -443,9 +447,9 @@ public class LogInterceptorImp implements InvocationHandler {
     }
 
     /**
-     * @param requestObject
-     * @param requestBodyClass
-     * @return
+     * @param requestObject  requestObject
+     * @param requestBodyClass  requestBodyClass
+     * @return  RequestBodyObject
      */
     private Object getRequestBodyObject(Object requestObject, Class requestBodyClass) {
         //返回类型 是 requestBodyClass 类型
