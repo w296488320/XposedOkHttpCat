@@ -454,8 +454,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         CLogUtils.e("拿到 混淆 以后的  拦截器 实例  ");
                         interceptors.add(httpLoggingInterceptor);
                     } else {
-                        CLogUtils.e("没有 拿到 拦截器   ");
-                        //HookGetOutPushStream();
+                        CLogUtils.e("没有 拿到 拦截器   开始 动态代理  自动识别   ");
                         interceptors.add(getHttpLoggingInterceptorImp());
                     }
                 } else {

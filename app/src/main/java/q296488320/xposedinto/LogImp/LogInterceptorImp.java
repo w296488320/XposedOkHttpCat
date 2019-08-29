@@ -1,13 +1,14 @@
 package q296488320.xposedinto.LogImp;
 
 import java.io.EOFException;
+import java.io.InputStream;
+import java.io.Reader;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.charset.Charset;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import q296488320.xposedinto.XpHook.Hook;
@@ -27,92 +28,76 @@ public class LogInterceptorImp implements InvocationHandler {
     private Object ResponseObject;
     private Class mResponseBodyClass;
     private Object mBufferObject;
+    private StringBuilder mStringBuffer;
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
 
         try {
-            StringBuilder stringBuffer = new StringBuilder();
+            mStringBuffer = new StringBuilder();
             //里面只有 一个方法
             Object ChainObject = args[0];
 
 
-            RequestObject = getRequestObject(ChainObject);
+            mStringBuffer.append("\n" + "--------------------------------------->>>" + "\n");
 
+            RequestObject = getRequestObject(ChainObject);
+            //请求的 Url信息
+            mStringBuffer.append(InvokeToString(RequestObject)).append("\n");
+
+
+            ResponseObject = getResponseObject(ChainObject, RequestObject);
 
             if (RequestObject == null) {
                 CLogUtils.e("getRequestObject   getRequestObject   返回 Null");
-                return null;
+                return ResponseObject;
             } else {
                 CLogUtils.e("getRequestObject   拿到 RequestObject  名字是   " + RequestObject.getClass().getName());
-
             }
-            ResponseObject = getResponseObject(ChainObject, RequestObject);
-
-            if (ResponseObject != null) {
-                CLogUtils.e("getRequestObject   拿到 ResponseObject  名字是   " + ResponseObject.getClass().getName());
+            if (ResponseObject == null) {
+                CLogUtils.e("getRequestObject   拿到 ResponseObject  名字是   ");
+                return ResponseObject;
             } else {
-                CLogUtils.e("没有找到    拿到 ResponseObject  名字是   ");
+                CLogUtils.e("   拿到 ResponseObject  名字是   " + ResponseObject.getClass().getName());
             }
-
-            stringBuffer.append("\n" + "--------------->>>" + "\n").append(InvokeToString(RequestObject)).append("\n\n");
 
             Class headerClass = getHeaderClass();
             if (headerClass != null) {
                 CLogUtils.e("getRequestObject  拿到 headerClass  名字是  " + headerClass.getName());
+                //拿到请求头的信息 直接 调用的 toString
+                String RequestHeaders = getHeadersMethodAndInvoke(headerClass, RequestObject);
+                mStringBuffer.append(RequestHeaders).append("\n");
             } else {
-                CLogUtils.e("没有找到    拿到 headerClass    名字是   ");
-            }
-            CLogUtils.e("开始查找 headers 函数 ");
-            String RequestHeaders = getHeadersMethodAndInvoke(headerClass, RequestObject);
-
-            if (RequestHeaders == null) {
-                CLogUtils.e("getRequestObject   getHeadersMethodAndInvoke 返回 Null");
+                CLogUtils.e("没有找到    拿到 RequestHeaders    名字是   ");
+                CLogUtils.e("===========================  " + mStringBuffer.toString());
                 return ResponseObject;
-            } else {
-                stringBuffer.append(RequestHeaders).append("\n");
-                CLogUtils.e("getRequestObject   拿到请求 头部信息 ");
             }
-
-            //判断 是否存在 body
-//        RequestBody requestBody = request.body();
-//        boolean hasRequestBody = requestBody != null;
-
             //需要先 拿到 RequestBody 类型
             Class RequestBodyClass = getRequestBodyClass();
 
             Object RequestBodyObject = getRequestBodyObject(RequestObject, RequestBodyClass);
             //Get请求 没有 请求体  可能 存在 为Nulll的 情况
             if (RequestBodyObject != null) {
+
                 //在 不等于 Null的 时候 开始遍历  请求 Body
-                CLogUtils.e("拿到  RequestBodyObject");
-
-                //          Buffer buffer = new Buffer();
-                //          requestBody.writeTo(buffer);
-                //          Charset charset = UTF8;
-
-                //          MediaType contentType = requestBody.contentType();
-                //          if (contentType != null) {
-                //              charset = contentType.charset(UTF8);
-                //          }
+                CLogUtils.e("拿到  RequestBodyObject  名字是  " + RequestBodyObject.getClass().getName());
 
                 mBufferObject = getBufferObject();
-
                 if (mBufferObject != null) {
                     CLogUtils.e("拿到  bufferObject");
                     if (invokeW1riteTo(RequestBodyObject, mBufferObject)) {
                         //默认是 U8解码
                         Charset charset = UTF8;
-                        Class mediaTypeClass = getMediaTypeClass();
-                        Charset contentTypeMethodAndInvoke = getContentTypeMethodAndInvoke(mediaTypeClass, RequestBodyObject);
-                        if (contentTypeMethodAndInvoke != null) {
-                            charset = contentTypeMethodAndInvoke;
-                            if (isPlaintext(mBufferObject)) {
-                                //logger.log(buffer.readString(charset));
-                                stringBuffer.append(getReadStringAndInvoke(mBufferObject, charset)).append("\n");
-                            }
+                        //MediaType 类型
+                        Object contentType = getContentTypeMethodAndInvoke(RequestBodyObject);
+                        if (contentType != null) {
+                            charset = getMediaTypeCharSetMethodAndInvoke(contentType);
                         } else {
                             CLogUtils.e("contentTypeMethodAndInvoke  == null ");
+                        }
+                        if (isPlaintext(mBufferObject)) {
+                            //logger.log(buffer.readString(charset));
+                            mStringBuffer.append(getReadStringAndInvoke(mBufferObject, charset)).append("\n");
                         }
                     } else {
                         CLogUtils.e("没有成功 设置  requestBody.writeTo(buffer) ");
@@ -120,114 +105,195 @@ public class LogInterceptorImp implements InvocationHandler {
                 }
             }
 
-            long startNs = System.nanoTime();//返回的是纳秒
 
-            long tookMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNs);
+            //添加 响应体 的 url之类的
+            mStringBuffer.append("\n" + "<<<---------------------------------------").append("\n");
+            mStringBuffer.append(InvokeToString(ResponseObject)).append("\n");
 
             mResponseBodyClass = getResponseBodyClass();
-
-//        ResponseBody responseBody = response.body();
-//        long contentLength = responseBody.contentLength();
-//        String bodySize = contentLength != -1 ? contentLength + "-byte" : "unknown-length";
             if (mResponseBodyClass != null) {
-                Object responseBodyObject = getResponseBodyMethodAndInvoke(mResponseBodyClass, ResponseObject);
-
-                int contentLength = getResponseBodyContentLengthMethodAndInvoke(mResponseBodyClass, responseBodyObject);
-
-                String bodySize = contentLength != -1 ? contentLength + "-byte" : "unknown-length";
-
-                //            logger.log("<-- "
-                //                    + response.code()
-                //                    + (response.message().isEmpty() ? "" : ' ' + response.message())
-                //                    + ' ' + response.request().url()
-                //                    + " (" + tookMs + "ms" + (!logHeaders ? ", " + bodySize + " body" : "") + ')');
-
-
-                stringBuffer.append("<<<---------------" + "\n").append(InvokeToString(ResponseObject)).append(bodySize).append("    ").append(" bodySize").append("\n");
-                //            Headers headers = response.headers();
-                //            for (int i = 0, count = headers.size(); i < count; i++) {
-                //                logHeader(headers, i);
-                //            }
-
-
                 String ResponseHeaders = getHeadersMethodAndInvoke(headerClass, ResponseObject);
-
                 if (ResponseHeaders == null) {
                     CLogUtils.e("ResponseHeaders   getHeadersMethodAndInvoke 返回 Null");
                     return ResponseObject;
                 } else {
-                    stringBuffer.append(ResponseHeaders).append("\n");
-                    CLogUtils.e("ResponseHeaders   拿到请求 头部信息 ");
+                    mStringBuffer.append(ResponseHeaders).append("\n");
+                    CLogUtils.e("ResponseHeaders   拿到响应 头部信息 ");
                 }
-                // HttpHeaders.hasBody(response)
                 if (!ResponseHasBody(ResponseObject)) {
-                    stringBuffer.append("<<<--------------- END HTTP").append("\n");
+                    //不存在 Body的情况  直接打印结束
+                    mStringBuffer.append("================     " +"<<<--------------- END HTTP").append("\n");
+                    CLogUtils.e(mStringBuffer.toString());
                 } else if (bodyHasUnknownEncoding(ResponseObject)) {
-                    stringBuffer.append("<<<--------------- 解码 不支持 省略了 编码 正文 ").append("\n");
+                    mStringBuffer.append("================     " +"<<<--------------- 解码 不支持 省略了 编码 正文 ").append("\n");
+                    CLogUtils.e(mStringBuffer.toString());
                 } else {
-                    // 存在 返回体的 时候 并且支持解码
-
-                    //                BufferedSource source = responseBody.source();
-                    //                source.request(Long.MAX_VALUE); // Buffer the entire body.
-
-                    //                Buffer buffer = source.getBuffer();
-
-                    Object BufferedSourceObject = getSourceAndInvoke(responseBodyObject);
-                    if (BufferedSourceObject != null) {
-                        getBufferedSourceRequestMethodAndInvoke(BufferedSourceObject);
-                        Object buffer = getBufferMethodInBufferedSourceAndInvoke(BufferedSourceObject, mBufferObject.getClass());
-                        if (buffer != null) {
-                            if (!isPlaintext(buffer)) {
-                                stringBuffer.append("<<<---------------   -byte body omittedppend(").append("\n");
-                            }
-                            if (contentLength != 0) {
-                                //logger.log(buffer.clone().readString(charset));
-                                getBufferCloneMethodAndInvoke(buffer);
-                            }
-
-
-                        } else {
-                            CLogUtils.e("getBufferMethodInBufferedSourceAndInvoke  获取 buffer  == null   ");
-                        }
-                    } else {
-                        CLogUtils.e("BufferedSourceObject  == null   ");
+                    //调用 string()  方法
+                   String  ResponseBodyString = getStringMethodAndInvoke(ResponseObject);
+                    if(ResponseBodyString!=null){
+                        mStringBuffer.append(ResponseBodyString).append("\n").append("<<<--------------- END HTTP").append("\n");
                     }
+                    CLogUtils.e("================     " + mStringBuffer.toString());
+
                 }
-            } else {
-                CLogUtils.e("getResponseBodyClass  返回值   responseBodyClass   == null   ");
             }
         } catch (Exception e) {
+            //出现异常 统一 打印
+            CLogUtils.e("================     出现异常 可能打印 不全面 " + "\n" + mStringBuffer.toString());
             e.printStackTrace();
         }
         return ResponseObject;
     }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     /**
-     * 重新实现 一次  public Buffer 里面 clone()
-     *
-     * @param buffer
+     * 获取  responseObject 里面的 string方法
+     * @return
+     * @param responseObject
      */
-    private Object getBufferCloneMethodAndInvoke(Object buffer) throws Exception {
-        Object result = buffer.getClass().newInstance();
-        if (result == null) {
-            throw new Exception("getBufferCloneMethodAndInvoke result==Null ");
+    private String getStringMethodAndInvoke(Object responseObject) throws Exception {
+        try {
+            try {
+                Method string = responseObject.getClass().getDeclaredMethod("string");
+                if(string!=null){
+                    string.setAccessible(true);
+                    return (String) string.invoke(responseObject);
+                }
+            } catch (NoSuchMethodException e) {
+                Method[] declaredMethods = responseObject.getClass().getDeclaredMethods();
+                for(Method method:declaredMethods){
+                    if(method.getReturnType().getName().equals(String.class.getName())&&
+                            method.getParameterTypes().length==0
+                    ){
+                        method.setAccessible(true);
+                        return (String) method.invoke(responseObject);
+                    }
+                }
+            }
+        } catch (IllegalAccessException e) {
+            CLogUtils.e("getStringMethodAndInvoke  IllegalAccessException "+e.getMessage());
+            e.printStackTrace();
+        } catch (InvocationTargetException e) {
+            CLogUtils.e("getStringMethodAndInvoke  InvocationTargetException "+e.getMessage());
+            e.printStackTrace();
         }
+        throw new Exception("getStringMethodAndInvoke ==Null ");
+    }
+
+    /**
+     * 主要是 调用MediaType 里面的 charset方法 实现
+     *
+     * @param contentType contentType
+     * @return
+     * @throws Exception
+     */
+    private Charset getMediaTypeCharSetMethodAndInvoke(Object contentType) throws Exception {
+
+        Method[] declaredMethods = contentType.getClass().getDeclaredMethods();
+        for (Method method : declaredMethods) {
+            if (method.getReturnType().getName().equals(Charset.class.getName()) &&
+                    method.getParameterTypes().length == 1 &&
+                    method.getParameterTypes()[0].getName().equals(Charset.class.getName())
+            ) {
+                method.setAccessible(true);
+                //用 默认 U8为参数
+                return (Charset) method.invoke(contentType, UTF8);
+            }
+        }
+        throw new Exception("getMediaTypeCharSetMethodAndInvoke charsetMethod ==Null ");
+    }
+
+
+
+
+    /**
+     * result.head 参数类型是 Segment
+     */
+    private Object getHeadInBuffer(Object bufferObject) throws Exception {
         Class segmentClass = getSegmentClass();
-        Field[] declaredFields = buffer.getClass().getDeclaredFields();
+        Field[] declaredFields = bufferObject.getClass().getDeclaredFields();
         for (Field field : declaredFields) {
-            if (field.getType().getName().equals(long.class.getName())) {
-                field.setAccessible(true);
-                long size = field.getLong(buffer);
-                if (size == 0) {
-                    return result;
+            if (field.getType().getName().equals(segmentClass.getName())) {
+                try {
+                    return field.get(bufferObject);
+                } catch (IllegalAccessException e) {
+                    CLogUtils.e("getHeadInBuffer     " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
         }
-        throw new Exception("getBufferCloneMethodAndInvoke  没有 找到 ");
+        throw new Exception("getHeadInBuffer  没有 找到 ");
     }
 
-    private Class getSegmentClass() {
+    private Class getSegmentClass() throws Exception {
+//        final byte[] data;
+//        int limit;
+//        boolean owner;
+//        int pos;
+//        boolean shared;
+//        m wka;
+//        m wkb;
+        //本身类型 2个   boolean两个 int两个 final byte 1个
 
+        for (Class Mclass : Hook.mClassList) {
+            int booleanCount = 0;
+            int intCount = 0;
+            int byteCount = 0;
+            int selfCount = 0;
+            Field[] declaredFields = Mclass.getDeclaredFields();
+            for (Field field : declaredFields) {
+                if (field.getType().getName().equals(boolean.class.getName())) {
+                    booleanCount++;
+                }
+                if (field.getType().getName().equals(int.class.getName())) {
+                    intCount++;
+                }
+                if (field.getType().getName().equals(byte[].class.getName()) && Modifier.isFinal(field.getModifiers())) {
+                    byteCount++;
+                }
+                if (field.getType().getName().equals(Mclass.getName())) {
+                    selfCount++;
+                }
+                if (selfCount == 2 && byteCount == 1 && intCount == 2 && booleanCount == 2) {
+                    return Mclass;
+                }
+            }
+        }
+        throw new Exception("getSegmentClass   没有 找到 ");
     }
 
 
@@ -244,6 +310,10 @@ public class LogInterceptorImp implements InvocationHandler {
 
 
     /**
+     * Buffer buffer();
+     * Buffer getBuffer();
+     * 这两个方法的 其中一个
+     *
      * @param BufferedSourceObject BufferedSourceObject
      * @param mBufferObject        mBuffer字节码
      * @return BufferObject
@@ -251,7 +321,8 @@ public class LogInterceptorImp implements InvocationHandler {
     private Object getBufferMethodInBufferedSourceAndInvoke(Object BufferedSourceObject, Class mBufferObject) throws Exception {
         Method[] declaredMethods = BufferedSourceObject.getClass().getDeclaredMethods();
         for (Method method : declaredMethods) {
-            if (method.getReturnType().getName().equals(mBufferObject.getName()) && method.getParameterTypes().length == 0) {
+            if (method.getReturnType().getName().equals(mBufferObject.getName())
+                    && method.getParameterTypes().length == 0) {
                 method.setAccessible(true);
                 try {
                     return method.invoke(BufferedSourceObject);
@@ -270,10 +341,8 @@ public class LogInterceptorImp implements InvocationHandler {
     /**
      * boolean request(long byteCount) throws IOException;
      * 返回类型是 boolean 参数 1  个 并且是 long类型
-     *
-     * @param bufferedSourceObject
      */
-    private void getBufferedSourceRequestMethodAndInvoke(Object bufferedSourceObject) throws Exception {
+    private void getBufferedSourceRequestMethodAndInvoke(Object bufferedSourceObject, long body) throws Exception {
         Method[] declaredMethods = bufferedSourceObject.getClass().getDeclaredMethods();
         for (Method method : declaredMethods) {
             if (method.getParameterTypes().length == 1 &&
@@ -282,7 +351,7 @@ public class LogInterceptorImp implements InvocationHandler {
             ) {
                 method.setAccessible(true);
                 try {
-                    method.invoke(bufferedSourceObject, Long.MAX_VALUE);
+                    method.invoke(bufferedSourceObject, body);
                 } catch (IllegalAccessException e) {
                     CLogUtils.e("getBufferedSourceRequestMethodAndInvoke   IllegalAccessException " + e.getMessage());
                     e.printStackTrace();
@@ -297,35 +366,66 @@ public class LogInterceptorImp implements InvocationHandler {
 
     /**
      * 这个 类型 特征 很难写 需要 根据 这三个 抽象方法的 返回类型 拿到 具体的内容
+     * <p>
+     * 主要为了复现 这个方法 BufferedSource source = responseBody.source();
+     * <p>
+     * <p>
      * public abstract @Nullable MediaType contentType();
      * public abstract long contentLength();
      * public abstract BufferedSource source();
-     *
-     * @param responseBodyObject
+     * <p>
+     * 在 responseBody 返回值是  BufferedSource只有一个方法
      */
     private Object getSourceAndInvoke(Object responseBodyObject) throws Exception {
-        Class mediaTypeClass = getMediaTypeClass();
-        if (mediaTypeClass != null) {
-            Method[] declaredMethods = mResponseBodyClass.getDeclaredMethods();
-            for (Method method : declaredMethods) {
-                if (Modifier.isAbstract(method.getModifiers())) {
-                    if (!method.getReturnType().getName().equals(long.class.getName()) &&
-                            !method.getReturnType().getName().equals(mediaTypeClass.getName())) {
-                        try {
-                            method.setAccessible(true);
-                            return method.invoke(responseBodyObject);
-                        } catch (IllegalAccessException e) {
-                            CLogUtils.e("getSourceAndInvoke   IllegalAccessException " + e.getMessage());
-                            e.printStackTrace();
-                        } catch (InvocationTargetException e) {
-                            CLogUtils.e("getSourceAndInvoke   IllegalAccessException " + e.getMessage());
-                            e.printStackTrace();
-                        }
-                    }
+        Class BufferedSourceType = getResponseBodySourceMethodReturnType(responseBodyObject);
+        Method[] declaredMethods = responseBodyObject.getClass().getDeclaredMethods();
+        for (Method method : declaredMethods) {
+            if (method.getReturnType().getName().equals(BufferedSourceType.getName())) {
+                method.setAccessible(true);
+                try {
+                    return method.invoke(responseBodyObject);
+                } catch (IllegalAccessException e) {
+                    CLogUtils.e("  getSourceAndInvoke   IllegalAccessException   " + e.getMessage());
+                    e.printStackTrace();
+                } catch (InvocationTargetException e) {
+                    CLogUtils.e("  getSourceAndInvoke   InvocationTargetException   " + e.getMessage());
+                    e.printStackTrace();
                 }
             }
         }
         throw new Exception("getSourceAndInvoke  没有 找到 ");
+    }
+
+    /**
+     * 主要 返回 public abstract BufferedSource source();
+     * BufferedSource 的类型    防混淆
+     * 把其他 有可能 出现的类型全部过滤掉
+     *
+     * @param responseBodyObject responseBodyObject
+     */
+    private Class getResponseBodySourceMethodReturnType(Object responseBodyObject) throws Exception {
+        Class mediaTypeClass = getMediaTypeClass();
+        if (mediaTypeClass != null) {
+            Method[] declaredMethods = responseBodyObject.getClass().getDeclaredMethods();
+            for (Method method : declaredMethods) {
+                //这块 逻辑 比较复杂 我目前的想法是 返回类型 只有  BufferedSource 类型 才可以 把其他方法返回值类型 干掉
+                if (!method.getReturnType().getName().equals(long.class.getName()) &&
+                        !method.getReturnType().getName().equals(mediaTypeClass.getName()) &&
+                        !method.getReturnType().getName().equals(void.class.getName()) &&
+                        !method.getReturnType().getName().equals(int.class.getName()) &&
+                        !method.getReturnType().getName().equals(responseBodyObject.getClass().getName()) &&
+                        !method.getReturnType().getName().equals(Charset.class.getName()) &&
+                        !method.getReturnType().getName().equals(String.class.getName()) &&
+                        !method.getReturnType().getName().equals(Reader.class.getName()) &&
+                        !method.getReturnType().getName().equals(byte[].class.getName()) &&
+                        !method.getReturnType().getName().equals(InputStream.class.getName())
+                ) {
+                    method.setAccessible(true);
+                    return method.getReturnType();
+                }
+            }
+        }
+        throw new Exception("getResponseBodySourceMethodReturnType  没有 找到 ");
     }
 
 
@@ -340,7 +440,6 @@ public class LogInterceptorImp implements InvocationHandler {
      * 主要 判断 响应体是否 支持解码
      *
      * @param ResponseObject ResponseObject
-     * @return
      */
     private boolean bodyHasUnknownEncoding(Object ResponseObject) throws Exception {
         try {
@@ -352,7 +451,7 @@ public class LogInterceptorImp implements InvocationHandler {
     }
 
 
-    public static final int HTTP_CONTINUE = 100;
+    private static final int HTTP_CONTINUE = 100;
 
     private boolean ResponseHasBody(Object ResponseObject) throws Exception {
 
@@ -411,10 +510,13 @@ public class LogInterceptorImp implements InvocationHandler {
     }
 
 
-    private boolean HeaderGetContent_Encoding(Object responseObject) throws Exception {
-        Object headersInResponse = getHeadersInResponse(responseObject);
-        if (headersInResponse != null) {
-            String contentEncoding = getHeadersGetMethodAndInvoke(headersInResponse, "Content-Encoding");
+    private boolean HeaderGetContent_Encoding(Object Object) throws Exception {
+        //bodyHasUnknownEncoding(response.headers())  先拿到
+        Object headersInObject = getHeadersInResponse(Object);
+
+        if (headersInObject != null) {
+            String contentEncoding = getHeadersGetMethodAndInvoke(headersInObject, "Content-Encoding");
+
             return contentEncoding != null
                     && !contentEncoding.equalsIgnoreCase("identity")
                     && !contentEncoding.equalsIgnoreCase("gzip");
@@ -446,7 +548,8 @@ public class LogInterceptorImp implements InvocationHandler {
         Method[] declaredMethods = headersInResponse.getClass().getDeclaredMethods();
         for (Method method : declaredMethods) {
             if (method.getReturnType().getName().equals(String.class.getName()) &&
-                    method.getParameterTypes().length == 1 && method.getParameterTypes()[0].getName().equals(String.class.getName())
+                    method.getParameterTypes().length == 1 &&
+                    method.getParameterTypes()[0].getName().equals(String.class.getName())
             ) {
                 method.setAccessible(true);
                 try {
@@ -634,11 +737,9 @@ public class LogInterceptorImp implements InvocationHandler {
                     return (String) method.invoke(requestObject);
                 } catch (IllegalAccessException e) {
                     CLogUtils.e("getMethodInRequest   IllegalAccessException   " + e.getMessage());
-
                     e.printStackTrace();
                 } catch (InvocationTargetException e) {
                     CLogUtils.e("getMethodInRequest   InvocationTargetException   " + e.getMessage());
-
                     e.printStackTrace();
                 }
             }
@@ -797,21 +898,24 @@ public class LogInterceptorImp implements InvocationHandler {
         throw new Exception("getCopyToMethodAndInvoke == Null ");
     }
 
-    private Charset getContentTypeMethodAndInvoke(Class mediaTypeClass, Object requestBodyObject) throws Exception {
-        Method[] declaredMethods = requestBodyObject.getClass().getDeclaredMethods();
+    /**
+     * @param RBodyObject 响应 或者 请求的 Body
+     * @return MediaType contentType = responseBody.contentType()
+     */
+    private Object getContentTypeMethodAndInvoke(Object RBodyObject) throws Exception {
+        Class mediaTypeClass = getMediaTypeClass();
+        Method[] declaredMethods = RBodyObject.getClass().getDeclaredMethods();
         for (Method method : declaredMethods) {
             //返回  类型是 mediaTypeClass 参数 无
             if (method.getParameterTypes().length == 0 && method.getReturnType().getName().equals(mediaTypeClass.getName())) {
                 method.setAccessible(true);
                 try {
-                    return (Charset) method.invoke(requestBodyObject);
+                    return method.invoke(RBodyObject);
                 } catch (IllegalAccessException e) {
                     CLogUtils.e("getContentTypeMethodAndInvoke   IllegalAccessException   " + e.getMessage());
-
                     e.printStackTrace();
                 } catch (InvocationTargetException e) {
                     CLogUtils.e("getContentTypeMethodAndInvoke   InvocationTargetException   " + e.getMessage());
-
                     e.printStackTrace();
                 }
             }
@@ -979,7 +1083,6 @@ public class LogInterceptorImp implements InvocationHandler {
 
     /**
      * @param responseObject responseObject
-     * @return
      */
     private Object getHeadersInResponse(Object responseObject) throws Exception {
         Class headerClass = getHeaderClass();
@@ -1051,7 +1154,17 @@ public class LogInterceptorImp implements InvocationHandler {
 
     private String InvokeToString(Object Object) throws Exception {
         try {
-            Method method = Object.getClass().getMethod("toString");
+            Method method = Object.getClass().getDeclaredMethod("toString");
+            if (method == null) {
+                Method[] declaredMethods = Object.getClass().getDeclaredMethods();
+                for (Method method1 : declaredMethods) {
+                    if (method1.getReturnType().getName().equals(String.class.getName()) &&
+                            method1.getParameterTypes().length == 0
+                    ) {
+                        method = method1;
+                    }
+                }
+            }
             method.setAccessible(true);
             return (String) method.invoke(Object);
         } catch (NoSuchMethodException e) {
