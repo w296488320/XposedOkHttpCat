@@ -109,7 +109,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     private ArrayList<String> OkHttpLoggerList = new ArrayList();
 
     //存放 全部类名字的 集合
-    private  final List<String> AllClassNameList = new ArrayList<>();
+    private final List<String> AllClassNameList = new ArrayList<>();
 
     //存放 全部类的 集合
     public static volatile List<Class> mClassList = new ArrayList<>();
@@ -166,7 +166,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
                     protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                         super.afterHookedMethod(param);
-                        if(flag5==0) {
+                        if (flag5 == 0) {
                             CLogUtils.e("Hook到    onCreate");
                             if (MODEL.equals("3") || MODEL.equals("4")) {
                                 CLogUtils.e("使用了 通杀模式 ");
@@ -174,7 +174,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                 return;
                             }
                             HookOKClient();
-                            flag5=1;
+                            flag5 = 1;
                         }
                     }
 
@@ -209,12 +209,91 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     private synchronized void HookAndInitProguardClass() {
         //先拿到 app里面全部的class
         getAllClassName();
-        //第一步 先开始 拿到 OkHttp 里面的 类  如Client 和 Builder
         initAllClass();
+        AddClassOkIOPackage();
+        //第一步 先开始 拿到 OkHttp 里面的 类  如Client 和 Builder
         getClientClass();
         getBuilder();
 
         HookBuilderConstructor();
+    }
+
+    /**
+     * 这个方法 主要是 有的 io目录 被混淆了 导致后面的 拦截器方法  被 干掉了
+     * 需要先 找到 okIO的 路径
+     * 通过  FormBodyz这个方法 进行 参数1 拿到 路径
+     * public void writeTo(BufferedSink sink) throws IOException
+     *
+     * 比如 okio 目录被混淆成 abc这样的路径 我没做识别
+     * 没有加到 mClassList 这个里面也就导致后面的程序 会 找不到 抛异常
+     * 为了保险 在此添加一次 跟 Okio有关的类
+     */
+    private void AddClassOkIOPackage() {
+        int ListCount = 0;
+        int staticCount = 0;
+        for (Class mClass : mClassList) {
+            if (Modifier.isFinal(mClass.getModifiers())) {
+                Field[] declaredFields = mClass.getDeclaredFields();
+                if (declaredFields.length == 3) {
+                    for (Field field : declaredFields) {
+                        if (field.getType().getName().equals(List.class.getName()) &&
+                                Modifier.isFinal(field.getModifiers()) &&
+                                Modifier.isPrivate(field.getModifiers())
+                        ) {
+                            ListCount++;
+                        }
+                        if (Modifier.isFinal(field.getModifiers())
+                                && Modifier.isPrivate(field.getModifiers()) &&
+                                Modifier.isStatic(field.getModifiers())
+                        ) {
+                            staticCount++;
+                        }
+                    }
+                    if (ListCount == 2 && staticCount == 1) {
+                        String ioPath = getWriterToParameterTypeString(mClass);
+                        CLogUtils.e("比较 IO路径 是 ioPath");
+                        if (ioPath.contains("okio")) {
+                            return;
+                        } else {
+                            //将 OKIO 目录 加进去
+                            for(String string:AllClassNameList){
+                                if(string.contains(ioPath)){
+                                    try {
+                                        mClassList.add(Class.forName(string, false, mLoader));
+                                    } catch (ClassNotFoundException e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private String getWriterToParameterTypeString(Class mClass) {
+        Method[] declaredMethods = mClass.getDeclaredMethods();
+        for (Method method : declaredMethods) {
+            if (method.getReturnType().getName().equals(void.class.getName())
+                    && Modifier.isPublic(method.getModifiers()) && Modifier.isFinal(method.getModifiers())
+                    && method.getParameterTypes().length == 1
+            ) {
+                //String str="jjj.kkk.yyy.uuu";
+                String parameterType = method.getParameterTypes()[0].getName();
+                String[] split = parameterType.split(".");
+                StringBuffer stringBuffer = new StringBuffer();
+                for (int i = 0; i < split.length - 1; i++) {
+                    stringBuffer.append(split[i]).append(".");
+                }
+                if (stringBuffer.toString().endsWith(".")) {
+                    //去掉 末尾的 .
+                    stringBuffer.substring(0, stringBuffer.toString().length() - 1);
+                }
+                return stringBuffer.toString();
+            }
+        }
+        return "";
     }
 
     /**
@@ -224,15 +303,19 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         mClassList.clear();
         CLogUtils.e("开始 初始化全部的类  " + AllClassNameList.size());
         Class<?> MClass = null;
-        for (int i=0;i<AllClassNameList.size(); i++) {
+        for (int i = 0; i < AllClassNameList.size(); i++) {
             try {
-                MClass = Class.forName(AllClassNameList.get(i), false, mLoader);
-
+                if (AllClassNameList.get(i).contains("okhttp3") || AllClassNameList.get(i).contains("okio")) {//在当前所有可执行的类里面查找包含有该包名的所有类
+                    mClassList.add(Class.forName(AllClassNameList.get(i), false, mLoader));
+                    if (AllClassNameList.get(i).contains("okhttp3.logging")) {
+                        OkHttpLoggerList.add(AllClassNameList.get(i));
+                    }
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 //CLogUtils.e("initAllClass   "+e.getMessage()+"   index  "+i);
             }
-            if(MClass!=null) {
+            if (MClass != null) {
                 mClassList.add(MClass);
             }
         }
@@ -252,7 +335,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         CLogUtils.e("开始 查找   ClientClass");
         for (Class mClient : mClassList) {
             //判断 集合 个数 先拿到 四个集合 可以 拿到 Client
-
             if (isClient(mClient)) {
                 OkHttpClient = mClient;
                 CLogUtils.e("找到了 外层  开始 找内层 ");
@@ -370,6 +452,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
 
     private void getAllClassName() {
+
         //保证每次初始化 之前 保证干净
         AllClassNameList.clear();
         CLogUtils.e("开始 获取全部的类名  ");
@@ -417,12 +500,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         Enumeration<String> enumeration = dexFile.entries();
         while (enumeration.hasMoreElements()) {//遍历
             String className = enumeration.nextElement();
-            //if (className.contains("okhttp3")||className.contains("okio")) {//在当前所有可执行的类里面查找包含有该包名的所有类
             classNameList.add(className);
-//                if (className.contains("okhttp3.logging")) {
-//                    OkHttpLoggerList.add(className);
-//                }
-            //  }
         }
     }
 
@@ -608,7 +686,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         try {
             if (OkHttpLoggerList.size() != 0) {
                 for (String stringName : OkHttpLoggerList) {
-                    Class<?> aClass = Class.forName(stringName, true, mLoader);
+                    Class<?> aClass = Class.forName(stringName, false, mLoader);
                     if (isHttpLoggingInterceptor(aClass)) {
                         mHttpLoggingInterceptor = aClass;
                         //拿到 里面的接口类 名字
