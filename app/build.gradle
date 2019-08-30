@@ -1,5 +1,18 @@
 apply plugin: 'com.android.application'
+apply plugin: 'stringfog'
 
+
+stringfog {
+    // 这是加解密key，可以自由定义。
+    key 'zhenxi'
+    // 开关
+    enable true
+
+    // 加解密库的实现类路径，需和上面配置的加解密算法库一致。
+    implementation 'com.github.megatronking.stringfog.xor.StringFogImpl'
+    // 指定需加密的代码包路径，可配置多个，未指定将默认全部加密。
+//    fogPackages = ['com.zx.Justmeplush']
+}
 android {
     compileSdkVersion 26
     defaultConfig {
@@ -39,5 +52,6 @@ dependencies {
 //    implementation("com.squareup.okhttp3:okhttp:3.14.2")
     provided 'de.robv.android.xposed:api:82'
 
-
+    // 这里要和上面选用的加解密算法库一致，用于运行时解密。
+    implementation 'com.github.megatronking.stringfog:xor:1.1.0'
 }

@@ -32,14 +32,14 @@ public class LogInterceptorImp implements InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-
+        //CLogUtils.e("LogInterceptorImp   方法名字  "+method.getName()  +"    参数个数   "+args.length);
         try {
             mStringBuffer = new StringBuilder();
             //里面只有 一个方法
             Object ChainObject = args[0];
 
 
-            mStringBuffer.append("\n" + "--------------------------------------->>>" + "\n");
+            mStringBuffer.append("--------------------------------------->>>" + "\n");
 
             RequestObject = getRequestObject(ChainObject);
             //请求的 Url信息
@@ -139,6 +139,12 @@ public class LogInterceptorImp implements InvocationHandler {
             }
         } catch (Exception e) {
             //出现异常 统一 打印
+            CLogUtils.e("发现异常  "+e.getMessage());
+
+            StackTraceElement[] stackTrace = e.getStackTrace();
+            for(StackTraceElement stackTraceElement:stackTrace){
+                CLogUtils.e("方法名字    "+stackTraceElement.getMethodName()+"------  行数    "+stackTraceElement.getLineNumber());
+            }
             CLogUtils.e("================     出现异常 可能打印 不全面 " + "\n" + mStringBuffer.toString());
             e.printStackTrace();
         }
@@ -993,7 +999,9 @@ public class LogInterceptorImp implements InvocationHandler {
                 Field[] declaredFields = Mclass.getDeclaredFields();
                 if (declaredFields.length == 4) {
                     for (Field field : declaredFields) {
-                        if (Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers())) {
+                        if (Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers())
+                            &&(field.getType().getName().equals(byte[].class.getName())||field.getType().getName().equals(int.class.getName()))
+                        ) {
                             count++;
                         }
                     }
@@ -1062,12 +1070,16 @@ public class LogInterceptorImp implements InvocationHandler {
         Method[] declaredMethods = chainObject.getClass().getDeclaredMethods();
         for (Method method : declaredMethods) {
             Class<?>[] parameterTypes = method.getParameterTypes();
-            //Response proceed(Request var1) throws IOException;  参数 个数 1个 返回的类型是 Class 而不是 接口 并且类型是 final类型  并且第一个 参数类型是 Request
+            //Response proceed(Request var1) throws IOException;  参数 个数 1个
+            // 返回的类型是 Class 而不是 接口 并且类型是 final类型  并且第一个
+            // 参数类型是 Request
             if (parameterTypes.length == 1) {
-                if (!method.getReturnType().isInterface() && Modifier.isFinal(method.getReturnType().getModifiers()) && parameterTypes[0].getName().equals(RequestObject.getClass().getName())) {
+                if (!method.getReturnType().isInterface() &&
+                        Modifier.isFinal(method.getReturnType().getModifiers()) &&
+                        parameterTypes[0].getName().equals(RequestObject.getClass().getName())) {
                     try {
                         method.setAccessible(true);
-                        return method.invoke(chainObject);
+                        return method.invoke(chainObject,RequestObject);
                     } catch (IllegalAccessException e) {
                         CLogUtils.e("getRequestObject  IllegalAccessException    " + e.getMessage());
                         e.printStackTrace();
@@ -1140,10 +1152,15 @@ public class LogInterceptorImp implements InvocationHandler {
 
     private Class getHeaderClass() throws Exception {
         for (Class Mclass : Hook.mClassList) {
+
             if (Modifier.isFinal(Mclass.getModifiers())) {
-                if (Mclass.getDeclaredFields() != null && Mclass.getDeclaredFields().length == 1) {
+                //构造方法又2种    Headers(Builder builder)   Headers(String[] namesAndValues)
+                if (Mclass.getDeclaredFields().length == 1&&Mclass.getDeclaredConstructors().length==2) {
                     Field declaredField = Mclass.getDeclaredFields()[0];
-                    if (declaredField.getType().getName().equals(String.class.getName()) && Modifier.isFinal(declaredField.getModifiers())) {
+                    if (declaredField.getType().getName().equals(String[].class.getName())
+                            && Modifier.isFinal(declaredField.getModifiers())
+                            && Modifier.isPrivate(declaredField.getModifiers())
+                    ){
                         return Mclass;
                     }
                 }

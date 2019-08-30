@@ -22,9 +22,9 @@
 
 
 ## 修改包名
--repackageclass " "
+-repackageclass "Zx"
 ## 忽略访问修饰符，配合上一句使用
--allowaccessmodification
+#-allowaccessmodification
 
 -keep public class q296488320.xposedinto.XpHook.Hook
 

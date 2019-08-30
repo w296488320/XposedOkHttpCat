@@ -9,7 +9,7 @@ import q296488320.xposedinto.config.MainConfig;
 public class CLogUtils {
 
 	//规定每段显示的长度
-	private static int LOG_MAXLENGTH = 2000;
+	private static int LOG_MAXLENGTH = 5000;
 
 	private static String TAG = "XposedInto";
 
