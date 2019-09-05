@@ -12,11 +12,18 @@ public class CLogUtils {
 	private static int LOG_MAXLENGTH = 5000;
 
 	private static String TAG = "XposedInto";
-
+	private static String NetTAG = "XposedNet";
 	public static void e(String msg){
 			if(MainConfig.isDebug) {
 				InfiniteLog(TAG, msg);
 			}
+	}
+
+
+	public static void NetLogger(String msg) {
+		if(MainConfig.isDebug) {
+			InfiniteLog(NetTAG, msg);
+		}
 	}
 
 	public static void e(String TAG, String msg){

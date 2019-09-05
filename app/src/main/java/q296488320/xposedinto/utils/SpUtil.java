@@ -106,4 +106,40 @@ public class SpUtil {
 		}
 		sp.edit().remove(key).commit();
 	}
+
+
+
+	/**
+	 * 读取boolean标示从sp中
+	 * @param ctx	上下文环境
+	 * @param key	存储节点名称
+	 * @param defValue	没有此节点默认值
+	 * @return		默认值或者此节点读取到的结果
+	 */
+	public static boolean getBooleanIsFirst(Context ctx,String key,boolean defValue){
+		//(存储节点文件名称,读写方式)
+		if(sprrr == null){
+			sprrr = ctx.getSharedPreferences("configIs", Context.MODE_PRIVATE);
+		}
+		return sprrr.getBoolean(key, defValue);
+	}
+	private static SharedPreferences sprrr;
+	/**
+	 * 写入boolean变量至sp中
+	 * @param ctx	上下文环境
+	 * @param key	存储节点名称
+	 * @param value	存储节点的值 boolean
+	 */
+	public static void putBooleanIsFirst(Context ctx,String key,boolean value){
+		//(存储节点文件名称,读写方式)
+		if(sprrr == null){
+			sprrr = ctx.getSharedPreferences("configIs", Context.MODE_PRIVATE);
+		}
+		sprrr.edit().putBoolean(key, value).commit();
+	}
+
+
+
+
+
 }
