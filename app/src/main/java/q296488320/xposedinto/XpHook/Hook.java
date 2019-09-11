@@ -50,10 +50,10 @@ import q296488320.xposedinto.utils.FileUtils;
 
 public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
+    private final SimpleDateFormat mSimpleDateFormat= new SimpleDateFormat("yyyy-MM-dd HH时:mm分:ss秒");
 
     private String INTERCEPTORPATH = "/storage/emulated/0/OkHttpCat/bbb.dex";
     private String OUTRPATH = "/storage/emulated/0/OkHttpCat/Out";
-
 
     /**
      * 进行 注入的 app 名字
@@ -126,8 +126,10 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                 isShowStacktTrash = true;
             }
             //先重启 选择 好 要进行Hook的 app
-            if (!"".equals(InvokPackage) && lpparam.packageName.equals(InvokPackage)&&Flag==0) {
-                Flag=1;
+
+            if (!"".equals(InvokPackage) && lpparam.packageName.equals(InvokPackage)&&FileUtils.readTxtFile().equals("0")) {
+                //放在 sd卡 保存 是否已经 处理过
+                FileUtils.SaveFlag("1");
                 HookAttach();
             }
         } catch (Exception e) {
@@ -185,7 +187,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     /**
      * 获得当前进程的名字
      *
-     * @param context
      * @return 进程号
      */
     private  String getCurProcessName(Context context) {
@@ -564,7 +565,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             e.printStackTrace();
         }
     }
-
     private void getDexFileClassName(DexFile dexFile, List<String> classNameList) {
         //获取df中的元素  这里包含了所有可执行的类名 该类名包含了包名+类名的方式
         Enumeration<String> enumeration = dexFile.entries();
@@ -613,7 +613,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         }
     }
 
-
+    private  int InterceptorsFlag=0;
     private void AddInterceptors2(XC_MethodHook.MethodHookParam param) {
         try {
             if (mFieldArrayList.size() == 2) {
@@ -626,13 +626,14 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                     interceptors.add(httpLoggingInterceptor);
                 } else {
                     CLogUtils.e("没有 拿到 拦截器   开始 动态代理  自动识别   ");
+                    //防止 拦截器多次添加
                     Object httpLoggingInterceptorImp = getHttpLoggingInterceptorImp();
-                    if (httpLoggingInterceptorImp != null) {
+                    if (httpLoggingInterceptorImp != null &&InterceptorsFlag==0) {
                         interceptors.add(httpLoggingInterceptorImp);
+                        InterceptorsFlag=1;
                         CLogUtils.e("动态代理   拦截器 设置成功  ");
                     }
                 }
-
             } else {
                 CLogUtils.e("mFieldArrayList 的 集合 不是 2  ");
             }
@@ -674,9 +675,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
     /**
      * 判断是否是 Interceptor
-     *
-     * @param mClass
-     * @return
      */
     private boolean isInterceptorClass(Class mClass) {
         Method[] declaredMethods = mClass.getDeclaredMethods();
@@ -692,7 +690,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) {
-        Log.e("XposedInto===", (String) args[0]);
+        CLogUtils.NetLogger((String) args[0]);
         return null;
     }
 
@@ -845,7 +843,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         @Override
                         protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                             super.beforeHookedMethod(param);
-                            StringBuffer TraceString = new StringBuffer();
+                            StringBuilder TraceString = new StringBuilder();
                             if (isShowStacktTrash) {
                                 try {
                                     int b = 1 / 0;
@@ -861,7 +859,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             }
                             TraceString.append("<<<<------------------------------>>>>>  \n").append(new String((byte[]) param.args[0], StandardCharsets.UTF_8)).append("\n <<<<------------------------------>>>>>").append("\n");
 
-                            FileUtils.SaveString(new SimpleDateFormat("MM-dd-hh-mm-ss").format(new Date()) + "\n" + "  " +
+                            FileUtils.SaveString(mSimpleDateFormat.format(new Date(System.currentTimeMillis())) + "\n" + "  " +
                                     TraceString.toString(), mOtherContext.getPackageName());
                         }
                     });

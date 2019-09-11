@@ -3,6 +3,8 @@ package q296488320.xposedinto;
 import android.app.Application;
 import android.content.Context;
 
+import com.tencent.bugly.crashreport.CrashReport;
+
 import q296488320.xposedinto.utils.CLogUtils;
 
 /**
@@ -18,6 +20,11 @@ public class App extends Application{
     public void onCreate() {
         super.onCreate();
         mContext=getApplicationContext();
+        initBugly();
+    }
+
+    private void initBugly() {
+        CrashReport.initCrashReport(getApplicationContext(), "d498dfa281", false);
     }
 
 

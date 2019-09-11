@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import q296488320.xposedinto.Bean.AppBean;
+import q296488320.xposedinto.View.Xiaomiquan;
 import q296488320.xposedinto.adapter.MainListViewAdapter;
 import q296488320.xposedinto.utils.PermissionUtils;
 
@@ -90,6 +91,12 @@ public class MainActivity extends AppCompatActivity {
                 case R.id.AddQQGroup:
                     joinQQGroup();
                     break;
+                case R.id.xiaomiquan:
+                    xiaomiquan();
+                    break;
+                case R.id.shiyongshuoming:
+
+                    break;
             }
             return false;
         });
@@ -99,17 +106,21 @@ public class MainActivity extends AppCompatActivity {
 
 
     }
+
+    private void xiaomiquan() {
+        startActivity(new Intent(this, Xiaomiquan.class));
+    }
     /****************
      *
-     * 发起添加群流程。群号：故事(773642813) 的 key 为： GvTvJnDUsODxWy3tMl8oO6UH3kf77_KL
-     * 调用 joinQQGroup(GvTvJnDUsODxWy3tMl8oO6UH3kf77_KL) 即可发起手Q客户端申请加群 故事(773642813)
+     * 发起添加群流程。群号：OkHttpCat交流群(828912339) 的 key 为： how_NwAQvL0wiN_DkC5kGPFSJ3BuUKSG
+     * 调用 joinQQGroup(how_NwAQvL0wiN_DkC5kGPFSJ3BuUKSG) 即可发起手Q客户端申请加群 OkHttpCat交流群(828912339)
      *
      * @return 返回true表示呼起手Q成功，返回fals表示呼起失败
      ******************/
     public boolean joinQQGroup() {
         Intent intent = new Intent();
-        intent.setData(Uri.parse("mqqopensdkapi://bizAgent/qm/qr?url=http%3A%2F%2Fqm.qq.com%2Fcgi-bin%2Fqm%2Fqr%3Ffrom%3Dapp%26p%3Dandroid%26k%3D" + "GvTvJnDUsODxWy3tMl8oO6UH3kf77_KL\n" +
-                "     * 调用 joinQQGroup(GvTvJnDUsODxWy3tMl8oO6UH3kf77_KL"));
+        intent.setData(Uri.parse("mqqopensdkapi://bizAgent/qm/qr?url=http%3A%2F%2Fqm.qq.com%2Fcgi-bin%2Fqm%2Fqr%3Ffrom%3Dapp%26p%3Dandroid%26k%3D" + "how_NwAQvL0wiN_DkC5kGPFSJ3BuUKSG\n" +
+                "     * 调用 joinQQGroup(how_NwAQvL0wiN_DkC5kGPFSJ3BuUKSG"));
         // 此Flag可根据具体产品需要自定义，如设置，则在加群界面按返回，返回手Q主界面，不设置，按返回会返回到呼起产品界面    //intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         try {
             startActivity(intent);

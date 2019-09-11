@@ -1,7 +1,5 @@
 package q296488320.xposedinto.LogImp;
 
-import android.support.annotation.RequiresPermission;
-
 import java.io.EOFException;
 import java.io.InputStream;
 import java.io.Reader;
@@ -10,8 +8,8 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.channels.WritableByteChannel;
 import java.nio.charset.Charset;
-import java.security.Policy;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -35,10 +33,9 @@ public class LogInterceptorImp implements InvocationHandler {
     private StringBuilder mStringBuffer;
 
 
-
-
-    private Class   MediaTypeClass;
+    private Class MediaTypeClass;
     private Class mResponseBodyClass;
+
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) {
         //CLogUtils.e("LogInterceptorImp   方法名字  "+method.getName()  +"    参数个数   "+args.length);
@@ -48,7 +45,7 @@ public class LogInterceptorImp implements InvocationHandler {
             Object ChainObject = args[0];
 
 
-            mStringBuffer.append("--------------------------------------->>>" + "\n");
+            mStringBuffer.append("\n" + "--------------------------------------->>>" + "\n");
 
             RequestObject = getRequestObject(ChainObject);
             //请求的 Url信息
@@ -92,9 +89,13 @@ public class LogInterceptorImp implements InvocationHandler {
                 CLogUtils.e("拿到  RequestBodyObject  名字是  " + RequestBodyObject.getClass().getName());
 
                 mBufferObject = getBufferObject();
+                Class bufferedSinkClass = getBufferedSinkClass();
+
                 if (mBufferObject != null) {
-                    CLogUtils.e("拿到  bufferObject");
-                    if (invokeW1riteTo(RequestBodyObject, mBufferObject)) {
+                    CLogUtils.e("拿到  bufferObject  " + mBufferObject.getClass().getName());
+
+                    //这块 参数类型 是 BufferedSink  但是传入的是 Buffer
+                    if (invokeW1riteTo(RequestBodyObject, mBufferObject, bufferedSinkClass)) {
                         //默认是 U8解码
                         Charset charset = UTF8;
                         //MediaType 类型
@@ -120,110 +121,133 @@ public class LogInterceptorImp implements InvocationHandler {
             mStringBuffer.append(InvokeToString(ResponseObject)).append("\n");
 
             mResponseBodyClass = getResponseBodyClass();
+
             if (mResponseBodyClass != null) {
+                //获取 响应头
                 String ResponseHeaders = getHeadersMethodAndInvoke(headerClass, ResponseObject);
                 if (ResponseHeaders == null) {
                     CLogUtils.e("ResponseHeaders   getHeadersMethodAndInvoke 返回 Null");
                     return ResponseObject;
                 } else {
+                    //打印响应头
                     mStringBuffer.append(ResponseHeaders).append("\n");
                     CLogUtils.e("ResponseHeaders   拿到响应 头部信息 ");
                 }
+                //判断是否存在响应体
                 if (!ResponseHasBody(ResponseObject)) {
                     //不存在 Body的情况  直接打印结束
-                    mStringBuffer.append("================     " +"<<<--------------- END HTTP").append("\n");
+                    mStringBuffer.append("================     " + "<<<--------------- END HTTP").append("\n");
                     CLogUtils.NetLogger(mStringBuffer.toString());
+                    return ResponseObject;
+                    //判断 是否支持编码
                 } else if (bodyHasUnknownEncoding(ResponseObject)) {
-                    mStringBuffer.append("================     " +"<<<--------------- 解码 不支持 省略了 编码 正文 ").append("\n");
+                    mStringBuffer.append("================     " + "<<<--------------- 解码 不支持 省略了 编码 正文 ").append("\n");
                     CLogUtils.NetLogger(mStringBuffer.toString());
-                } else {
-                    //调用 string()  方法
-                   String  ResponseBodyString = getStringMethodAndInvoke(ResponseObject);
-                    if(ResponseBodyString!=null){
-                        mStringBuffer.append(ResponseBodyString).append("\n").append("<<<--------------- END HTTP").append("\n");
-                    }
-                    CLogUtils.NetLogger("================     " + mStringBuffer.toString());
+                    return ResponseObject;
 
+                } else {
+                    Object ResponseBodyObject = getResponseBodyObject(ResponseObject, mResponseBodyClass);
+                    if (ResponseBodyObject != null) {
+                        //调用 string()  方法  ResponseBody 里面的方法
+                        String ResponseBodyString = getStringMethodAndInvoke(ResponseBodyObject);
+
+                        CLogUtils.e("响应体 内容是  " + ResponseBodyString);
+                        if (ResponseBodyString != null) {
+                            mStringBuffer.append(ResponseBodyString).append("\n").append("<<< 响应体   --------------- END HTTP ").append("\n");
+                        }
+                        CLogUtils.NetLogger("================     " + mStringBuffer.toString());
+                        return ResponseObject;
+                    }
                 }
+
+
+            } else {
+                CLogUtils.e("没有 拿到 响应头  Class ");
             }
+
         } catch (Exception e) {
             //出现异常 统一 打印
-            CLogUtils.e("发现异常  "+e.getMessage());
+            CLogUtils.e("发现异常  " + e.getMessage());
 
             StackTraceElement[] stackTrace = e.getStackTrace();
-            for(StackTraceElement stackTraceElement:stackTrace){
-                CLogUtils.e("方法名字    "+stackTraceElement.getMethodName()+"------  行数    "+stackTraceElement.getLineNumber());
+            for (StackTraceElement stackTraceElement : stackTrace) {
+                CLogUtils.e("方法名字    " + stackTraceElement.getMethodName() + "------  行数    " + stackTraceElement.getLineNumber());
             }
-            CLogUtils.e("================     出现异常 可能打印 不全面 " + "\n" + mStringBuffer.toString());
+            CLogUtils.NetLogger("================     出现异常 可能打印 不全面 " + "\n" + mStringBuffer.toString());
             e.printStackTrace();
         }
         return ResponseObject;
     }
 
+    private Object getResponseBodyObject(Object responseObject, Class responseBodyClass) throws Exception {
+        Field[] declaredFields = responseObject.getClass().getDeclaredFields();
+        for (Field field : declaredFields) {
+            if (field.getType().getName().equals(responseBodyClass.getName())) {
+                field.setAccessible(true);
+                try {
+                    return field.get(responseObject);
+                } catch (IllegalAccessException e) {
+                    CLogUtils.e("getResponseBodyObject  IllegalAccessException " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+        }
+        throw new Exception("getResponseBodyObject  没有 找到 ");
+    }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    private Class getBufferedSinkClass() throws Exception {
+        //public interface BufferedSink extends Sink, WritableByteChannel
+        for (Class MClass : Hook.mClassList) {
+            if (MClass.isInterface()) {
+                Class[] interfaces = MClass.getInterfaces();
+                boolean isHaveWritableByteChannel = false;
+                if (interfaces.length >= 1) {
+                    for (Class lclass : interfaces) {
+                        if (lclass.getName().equals(WritableByteChannel.class.getName())) {
+                            isHaveWritableByteChannel = true;
+                        }
+                    }
+                }
+                Field[] declaredFields = MClass.getDeclaredFields();
+                if (isHaveWritableByteChannel && declaredFields.length == 0) {
+                    return MClass;
+                }
+            }
+        }
+        throw new Exception("getBufferedSinkClass  没有 找到 ");
+    }
 
 
     /**
      * 获取  responseObject 里面的 string方法
-     * @return
+     *
      * @param responseObject
+     * @return
      */
     private String getStringMethodAndInvoke(Object responseObject) throws Exception {
         try {
             try {
                 Method string = responseObject.getClass().getDeclaredMethod("string");
-                if(string!=null){
+                if (string != null) {
                     string.setAccessible(true);
                     return (String) string.invoke(responseObject);
                 }
             } catch (NoSuchMethodException e) {
                 Method[] declaredMethods = responseObject.getClass().getDeclaredMethods();
-                for(Method method:declaredMethods){
-                    if(method.getReturnType().getName().equals(String.class.getName())&&
-                            method.getParameterTypes().length==0
-                    ){
+                for (Method method : declaredMethods) {
+                    if (method.getReturnType().getName().equals(String.class.getName()) &&
+                            method.getParameterTypes().length == 0
+                    ) {
                         method.setAccessible(true);
                         return (String) method.invoke(responseObject);
                     }
                 }
             }
         } catch (IllegalAccessException e) {
-            CLogUtils.e("getStringMethodAndInvoke  IllegalAccessException "+e.getMessage());
+            CLogUtils.e("getStringMethodAndInvoke  IllegalAccessException " + e.getMessage());
             e.printStackTrace();
         } catch (InvocationTargetException e) {
-            CLogUtils.e("getStringMethodAndInvoke  InvocationTargetException "+e.getMessage());
+            CLogUtils.e("getStringMethodAndInvoke  InvocationTargetException " + e.getMessage());
             e.printStackTrace();
         }
         throw new Exception("getStringMethodAndInvoke ==Null ");
@@ -251,8 +275,6 @@ public class LogInterceptorImp implements InvocationHandler {
         }
         throw new Exception("getMediaTypeCharSetMethodAndInvoke charsetMethod ==Null ");
     }
-
-
 
 
     /**
@@ -494,13 +516,19 @@ public class LogInterceptorImp implements InvocationHandler {
 //            return false;
 //        }
 
-        Object responseInRequestMethodAndInvoke = getResponseInRequestMethodAndInvoke(ResponseObject);
-        if (responseInRequestMethodAndInvoke != null) {
-            String methodFieldInRequest = getMethodFieldInRequest(responseInRequestMethodAndInvoke);
+        //从响应中 拿到请求
+        Object Request = getResponseInRequestMethodAndInvoke(ResponseObject);
+
+
+        if (Request != null) {
+            CLogUtils.e("Request 的名字是   " + Request.getClass().getName());
+
+
+            String methodFieldInRequest = getMethodFieldInRequest(Request);
             if (methodFieldInRequest.equals("HEAD")) {
                 return false;
             }
-            int responseCode = getResponseCode(responseInRequestMethodAndInvoke);
+            int responseCode = getResponseCode(ResponseObject);
 
             if ((responseCode < HTTP_CONTINUE || responseCode >= 200)
                     && responseCode != HTTP_NO_CONTENT
@@ -596,8 +624,8 @@ public class LogInterceptorImp implements InvocationHandler {
         Field[] declaredFields = responseObject.getClass().getDeclaredFields();
         for (Field field : declaredFields) {
             //final 并且是 String
-            if (field.getType().getName().equals(int.class.getName())
-                    && Modifier.isFinal(field.getModifiers())) {
+            if (field.getType().getName().equals(int.class.getName()) && Modifier.isFinal(field.getModifiers())) {
+
                 field.setAccessible(true);
                 try {
                     return field.getInt(responseObject);
@@ -615,7 +643,7 @@ public class LogInterceptorImp implements InvocationHandler {
      *
      * @param responseInRequestMethodAndInvoke Request
      */
-    private String getMethodFieldInRequest(Object responseInRequestMethodAndInvoke) {
+    private String getMethodFieldInRequest(Object responseInRequestMethodAndInvoke) throws Exception {
         Field[] declaredFields = responseInRequestMethodAndInvoke.getClass().getDeclaredFields();
         for (Field field : declaredFields) {
             //final 并且是 String
@@ -629,7 +657,7 @@ public class LogInterceptorImp implements InvocationHandler {
                 }
             }
         }
-        return "";
+        throw new Exception("getMethodFieldInRequest == Null ");
     }
 
     /**
@@ -697,7 +725,7 @@ public class LogInterceptorImp implements InvocationHandler {
     }
 
     private Class getResponseBodyClass() throws Exception {
-        if(mResponseBodyClass!=null){
+        if (mResponseBodyClass != null) {
             return mResponseBodyClass;
         }
         //本身 是抽象类  抽象方法 大于2 个
@@ -706,15 +734,15 @@ public class LogInterceptorImp implements InvocationHandler {
         if (mediaTypeClass != null) {
             for (Class Mclass : Hook.mClassList) {
                 Field[] declaredFields = Mclass.getDeclaredFields();
-                if(declaredFields.length==1&&declaredFields[0].getType().getName().equals(Reader.class.getName())){
-                    int MediaTypeCount=0;
+                if (declaredFields.length == 1 && declaredFields[0].getType().getName().equals(Reader.class.getName())) {
+                    int MediaTypeCount = 0;
                     Method[] declaredMethods = Mclass.getDeclaredMethods();
-                    for(Method method:declaredMethods){
-                        if(method.getReturnType().getName().equals(mediaTypeClass.getName())){
+                    for (Method method : declaredMethods) {
+                        if (method.getReturnType().getName().equals(mediaTypeClass.getName())) {
                             MediaTypeCount++;
                         }
                     }
-                    if(MediaTypeCount>=1){
+                    if (MediaTypeCount >= 1) {
                         return Mclass;
                     }
                 }
@@ -828,15 +856,8 @@ public class LogInterceptorImp implements InvocationHandler {
 
 
             Object prefix = bufferObject.getClass().newInstance();
-            Field[] fields = bufferObject.getClass().getFields();
-            long bufferObjectSize = -1L;
-            for (Field field : fields) {
-                if (field.getType().getName().equals(long.class.getName())) {
-                    field.setAccessible(true);
-                    bufferObjectSize = field.getLong(bufferObject);
-                }
-            }
 
+            long bufferObjectSize = getBufferSize(bufferObject);
 
             if (bufferObjectSize != -1L) {
                 long byteCount = bufferObjectSize < 64L ? bufferObjectSize : 64L;
@@ -880,6 +901,18 @@ public class LogInterceptorImp implements InvocationHandler {
         throw new Exception("isPlaintext == Null ");
     }
 
+    private long getBufferSize(Object bufferObject) throws Exception {
+        Field[] fields = bufferObject.getClass().getDeclaredFields();
+        long bufferObjectSize = -1L;
+        for (Field field : fields) {
+            if (field.getType().getName().equals(long.class.getName())) {
+                field.setAccessible(true);
+                return field.getLong(bufferObject);
+            }
+        }
+        throw new Exception("getBufferSize == Null ");
+    }
+
     private Method getReadUtf8CodePointMethod(Object prefix) throws Exception {
         Method[] declaredMethods = prefix.getClass().getDeclaredMethods();
         for (Method method : declaredMethods) {
@@ -895,19 +928,32 @@ public class LogInterceptorImp implements InvocationHandler {
     }
 
     private void getCopyToMethodAndInvoke(Object bufferObject, Object prefix, long byteCount) throws Exception {
+        //buffer.copyTo(prefix, 0L, byteCount);
         Method[] declaredMethods = bufferObject.getClass().getDeclaredMethods();
         for (Method method : declaredMethods) {
+
+//            if(method.getName().equals("copyTo")&&method.getParameterTypes().length == 3){
+//                CLogUtils.e("方法 信息     "
+//                        +(method.getParameterTypes()[0].getName().equals(bufferObject.getClass().getName()))+
+//                                "   "+bufferObject.getClass().getName()+"     "+method.getParameterTypes()[0].getName()+"    "+
+//                                ( method.getParameterTypes()[1].getName().equals(long.class.getName()))+"   "+
+//                                (method.getParameterTypes()[2].getName().equals(long.class.getName()))
+//                        );
+//            }
+
             //返回值是 Buff
             if (method.getReturnType().getName().equals(bufferObject.getClass().getName())) {
                 //参数 长度是 3 参数 类型 Buff long longg
                 if (method.getParameterTypes().length == 3
-                        && method.getParameterTypes()[0].getName().equals(bufferObject.getClass().getName())
-                        && method.getParameterTypes()[1].getName().equals(long.class.getName())
-                        && method.getParameterTypes()[2].getName().equals(long.class.getName())
+                        //这个 参数 可能是 buff也可能 是 OutputStream 版本有关系
+                        && (method.getParameterTypes()[0].getName().equals(bufferObject.getClass().getName()))
+                        && (method.getParameterTypes()[1].getName().equals(long.class.getName()))
+                        && (method.getParameterTypes()[2].getName().equals(long.class.getName()))
                 ) {
                     method.setAccessible(true);
                     try {
                         method.invoke(bufferObject, prefix, 0L, byteCount);
+                        return;
                     } catch (IllegalAccessException e) {
                         CLogUtils.e("isPlaintext   IllegalAccessException   " + e.getMessage());
                         e.printStackTrace();
@@ -950,7 +996,7 @@ public class LogInterceptorImp implements InvocationHandler {
      * okhttp3.MediaType
      */
     private Class getMediaTypeClass() throws Exception {
-        if(MediaTypeClass!=null){
+        if (MediaTypeClass != null) {
             return MediaTypeClass;
         }
 //        private static final Pattern PARAMETER = Pattern.compile(";\\s*(?:([a-zA-Z0-9-!#$%&'*+.^_`{|}~]+)=(?:([a-zA-Z0-9-!#$%&'*+.^_`{|}~]+)|\"([^\"]*)\"))?");
@@ -982,13 +1028,13 @@ public class LogInterceptorImp implements InvocationHandler {
                     }
                     if (StringFinalType >= 4 && PatternTypeCount == 2) {
                         Method[] declaredMethods = mClass.getDeclaredMethods();
-                        for(Method method:declaredMethods){
-                            if(method.getReturnType().getName().equals(Charset.class.getName())){
+                        for (Method method : declaredMethods) {
+                            if (method.getReturnType().getName().equals(Charset.class.getName())) {
                                 charSetReturn++;
                             }
                         }
-                        if(charSetReturn>=2) {
-                            MediaTypeClass=mClass;
+                        if (charSetReturn >= 2) {
+                            MediaTypeClass = mClass;
                             return mClass;
                         }
                     }
@@ -998,15 +1044,15 @@ public class LogInterceptorImp implements InvocationHandler {
         throw new Exception("getMediaTypeClass == Null ");
     }
 
-    private boolean invokeW1riteTo(Object requestBodyObject, Object bufferObject) throws Exception {
+    private boolean invokeW1riteTo(Object requestBodyObject, Object BufferedSinkObject, Class bufferedSinkClass) throws Exception {
         Method[] declaredMethods = requestBodyObject.getClass().getDeclaredMethods();
         for (Method method : declaredMethods) {
             //参数类型 是 Buff类型
-            if (method.getParameterTypes().length == 1 && method.getParameterTypes()[0].getName().equals(bufferObject.getClass().getName())) {
+            if (method.getParameterTypes().length == 1 && method.getParameterTypes()[0].getName().equals(bufferedSinkClass.getName())) {
                 try {
                     CLogUtils.e("RequestBody writeTo  当前方法的名字是  " + method.getName());
                     method.setAccessible(true);
-                    method.invoke(requestBodyObject, bufferObject);
+                    method.invoke(requestBodyObject, BufferedSinkObject);
                     return true;
                 } catch (IllegalAccessException e) {
                     CLogUtils.e(" invokeW1riteTo  IllegalAccessException" + e.getMessage());
@@ -1024,26 +1070,32 @@ public class LogInterceptorImp implements InvocationHandler {
 
 
     private Object getBufferObject() throws Exception {
+        //父类为null 接口数大于三个
         //本身是final类型  四个字段 两个是 final类型 并且是 static
         for (Class Mclass : Hook.mClassList) {
-            int StaticCount = 0;
-            int LongConut =0;
+
+            if (Modifier.isFinal(Mclass.getModifiers()) && Mclass.getSuperclass().getName().equals(Object.class.getName()) && Mclass.getInterfaces().length >= 3) {
+                int StaticCount = 0;
+                int LongConut = 0;
                 Field[] declaredFields = Mclass.getDeclaredFields();
-                if (declaredFields.length >=3) {
+                if (declaredFields.length >= 3) {
                     for (Field field : declaredFields) {
-                       // CLogUtils.e("当前的类名 是  "+Mclass.getName());
+                        // CLogUtils.e("当前的类名 是  "+Mclass.getName());
                         if (Modifier.isFinal(field.getModifiers())
                                 && Modifier.isStatic(field.getModifiers())
-                            &&(field.getType().getName().equals(byte[].class.getName())||field.getType().getName().equals(int.class.getName()))
-                        )
-                        {
+                                && (field.getType().getName().equals(byte[].class.getName())
+                                || field.getType().getName().equals(int.class.getName()))
+                        ) {
                             StaticCount++;
                         }
-                        if(field.getType().getName().equals(long.class.getName())){
+                        if (field.getType().getName().equals(long.class.getName())) {
                             LongConut++;
                         }
                     }
-                    if (StaticCount == 3 &&LongConut==1) {
+//                    if(Mclass.getName().equals("okio.Buffer")){
+//                        CLogUtils.e("StaticCount  "+StaticCount+"LongConut   "+LongConut +" declaredFields 个数   "+declaredFields.length);
+//                    }
+                    if (StaticCount == 2 && LongConut == 1) {
                         try {
                             return Mclass.newInstance();
                         } catch (InstantiationException e) {
@@ -1055,6 +1107,7 @@ public class LogInterceptorImp implements InvocationHandler {
                         }
                     }
                 }
+            }
         }
         throw new Exception("getBufferObject == Null ");
     }
@@ -1116,7 +1169,7 @@ public class LogInterceptorImp implements InvocationHandler {
                         parameterTypes[0].getName().equals(RequestObject.getClass().getName())) {
                     try {
                         method.setAccessible(true);
-                        return method.invoke(chainObject,RequestObject);
+                        return method.invoke(chainObject, RequestObject);
                     } catch (IllegalAccessException e) {
                         CLogUtils.e("getRequestObject  IllegalAccessException    " + e.getMessage());
                         e.printStackTrace();
@@ -1192,12 +1245,12 @@ public class LogInterceptorImp implements InvocationHandler {
 
             if (Modifier.isFinal(Mclass.getModifiers())) {
                 //构造方法又2种    Headers(Builder builder)   Headers(String[] namesAndValues)
-                if (Mclass.getDeclaredFields().length == 1&&Mclass.getDeclaredConstructors().length==2) {
+                if (Mclass.getDeclaredFields().length == 1 && Mclass.getDeclaredConstructors().length == 2) {
                     Field declaredField = Mclass.getDeclaredFields()[0];
                     if (declaredField.getType().getName().equals(String[].class.getName())
                             && Modifier.isFinal(declaredField.getModifiers())
                             && Modifier.isPrivate(declaredField.getModifiers())
-                    ){
+                    ) {
                         return Mclass;
                     }
                 }

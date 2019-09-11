@@ -30,7 +30,12 @@ android {
         }
 
     }
-
+    defaultConfig {
+        ndk {
+            // 设置支持的SO库架构
+            abiFilters 'armeabi' //, 'x86', 'armeabi-v7a', 'x86_64', 'arm64-v8a'
+        }
+    }
     signingConfigs {
         debug {
             storeFile file("C:/Users/Administrator/Desktop/lyhKey.jks")
@@ -54,7 +59,8 @@ dependencies {
 
     // 这里要和上面选用的加解密算法库一致，用于运行时解密。
     implementation 'com.github.megatronking.stringfog:xor:1.1.0'
-
-
+    //腾讯 bugly
+    compile 'com.tencent.bugly:crashreport:latest.release'
+    compile 'com.tencent.bugly:nativecrashreport:latest.release'
 //    compile project(path: ':dexlib2')
 }

@@ -9,10 +9,22 @@
         <!--app:showAsAction="ifRoom">-->
 
         <!--<menu >-->
+
+
             <item
                 app:showAsAction="ifRoom"
                 android:id="@+id/AddQQGroup"
                 android:title="加入QQ群"/>
+            <item
+                app:showAsAction="ifRoom"
+                android:id="@+id/xiaomiquan"
+                android:title="小密圈"/>
+
+            <item
+                app:showAsAction="ifRoom"
+                android:id="@+id/shiyongshuoming"
+                android:title="使用说明"/>
+
 
             <!--<item-->
                 <!--android:id="@+id/create"-->

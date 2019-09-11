@@ -18,6 +18,7 @@ import q296488320.xposedinto.R;
 import q296488320.xposedinto.XpHook.Hook;
 import q296488320.xposedinto.utils.CLogUtils;
 import q296488320.xposedinto.utils.Constants;
+import q296488320.xposedinto.utils.FileUtils;
 import q296488320.xposedinto.utils.SpUtil;
 import q296488320.xposedinto.utils.ToastUtils;
 
@@ -104,7 +105,6 @@ public class MainListViewAdapter extends BaseAdapter{
         final String[] items = {"模式1", "模式2","通杀模式","通杀模式(并打印调用栈)"};
         //builder.setMessage("默认是 模式1 如果 模式1 没有效果 切换 模式2 并重新打开 ");
         builder.setSingleChoiceItems(items, -1, (dialog, which) -> {
-            CLogUtils.e("whick  "+which);
             if(which==0){
                 //模式1
                 SpUtil.putString(mContext,MODEL,"1");
@@ -115,6 +115,8 @@ public class MainListViewAdapter extends BaseAdapter{
             }else if(which==3){
                 SpUtil.putString(mContext,MODEL,"4");
             }
+            //每一次选择 置零
+            FileUtils.SaveFlag("0");
             ToastUtils.showToast(App.getContext(),"保存成功"+ data.get(position).packageName +"   "+ items[which]);
             dialog.dismiss();
         });
