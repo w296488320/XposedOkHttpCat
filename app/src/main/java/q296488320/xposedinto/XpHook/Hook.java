@@ -1,13 +1,13 @@
 package q296488320.xposedinto.XpHook;
 
+import android.app.ActivityManager;
 import android.app.Application;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.util.Log;
-import android.app.ActivityManager;
+import android.text.TextUtils;
+
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -23,14 +23,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import android.text.TextUtils;
-
-//import org.jf.dexlib2.DexFileFactory;
-//import org.jf.dexlib2.Opcodes;
-//import org.jf.dexlib2.dexbacked.DexBackedClassDef;
-//import org.jf.dexlib2.dexbacked.DexBackedDexFile;
-//import org.jf.dexlib2.dexbacked.DexBackedField;
-
 import dalvik.system.DexClassLoader;
 import dalvik.system.DexFile;
 import de.robv.android.xposed.IXposedHookLoadPackage;
@@ -43,6 +35,12 @@ import q296488320.xposedinto.config.Key;
 import q296488320.xposedinto.utils.CLogUtils;
 import q296488320.xposedinto.utils.FileUtils;
 
+//import org.jf.dexlib2.DexFileFactory;
+//import org.jf.dexlib2.Opcodes;
+//import org.jf.dexlib2.dexbacked.DexBackedClassDef;
+//import org.jf.dexlib2.dexbacked.DexBackedDexFile;
+//import org.jf.dexlib2.dexbacked.DexBackedField;
+
 
 /**
  * Created by lyh on 2019/6/18.
@@ -50,7 +48,7 @@ import q296488320.xposedinto.utils.FileUtils;
 
 public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
-    private final SimpleDateFormat mSimpleDateFormat= new SimpleDateFormat("yyyy-MM-dd HH时:mm分:ss秒");
+    private final SimpleDateFormat mSimpleDateFormat = new SimpleDateFormat("yyyy-MM-dd HH时:mm分:ss秒");
 
     private String INTERCEPTORPATH = "/storage/emulated/0/OkHttpCat/bbb.dex";
     private String OUTRPATH = "/storage/emulated/0/OkHttpCat/Out";
@@ -68,7 +66,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     //别的进程的 context
     private Context mOtherContext;
     //别的进程的 mLoader
-    private  ClassLoader mLoader = null;
+    private ClassLoader mLoader = null;
 
 
     private String ClassPath = "okhttp3.OkHttpClient$Builder";
@@ -104,19 +102,14 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     private final List<String> AllClassNameList = new ArrayList<>();
 
     //存放 全部类的 集合
-    public  static  CopyOnWriteArrayList<Class> mClassList = new CopyOnWriteArrayList<>();
+    public static CopyOnWriteArrayList<Class> mClassList = new CopyOnWriteArrayList<>();
 
 
-
-
-    private volatile int Flag=0;
-
-
-
+    private volatile int Flag = 0;
 
 
     @Override
-    public  void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
+    public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
         try {
             shared = new XSharedPreferences("Xposed.Okhttp.Cat", "config");
             shared.reload();
@@ -125,16 +118,16 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             if (MODEL.equals("4")) {
                 isShowStacktTrash = true;
             }
+
             //先重启 选择 好 要进行Hook的 app
 
-            if (!"".equals(InvokPackage) && lpparam.packageName.equals(InvokPackage)&&FileUtils.readTxtFile().equals("0")) {
-                //放在 sd卡 保存 是否已经 处理过
-                FileUtils.SaveFlag("1");
+
+            if (!"".equals(InvokPackage) && lpparam.packageName.equals(InvokPackage)) {
                 HookAttach();
             }
         } catch (Exception e) {
             e.printStackTrace();
-            CLogUtils.e("Test  Exception  "+e.getMessage());
+            CLogUtils.e("Test  Exception  " + e.getMessage());
         }
 
     }
@@ -157,20 +150,24 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                 });
 
 
-
-
         XposedHelpers.findAndHookMethod(Application.class, "onCreate",
                 new XC_MethodHook() {
                     protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                         super.afterHookedMethod(param);
                         String processName = getCurProcessName(mOtherContext);
-                        CLogUtils.e("进程 名字   "+processName);
+                        CLogUtils.e("进程 名字   " + processName);
                         if (!TextUtils.isEmpty(processName)) {
                             boolean defaultProcess = processName.equals(mOtherContext.getPackageName());
-                            //只在主线程 处理
-                            if (defaultProcess) {
+                            boolean equals = FileUtils.readTxtFile(Key.OnCreateFlag).equals("0");
+                            //只在主线程 处理 并且 只处理一次
+                            if (defaultProcess && equals) {
                                 //当前应用的初始化
                                 CLogUtils.e("Hook到    onCreate");
+
+                                //放在 sd卡 保存 是否已经 处理过  这块 为了防止多进程
+                                // 被添加多次 onCreate 和 构造 都有可能被执行多次
+                                FileUtils.SaveLoadPackageFlag("1",Key.OnCreateFlag);
+
                                 if (MODEL.equals("3") || MODEL.equals("4")) {
                                     CLogUtils.e("使用了 通杀模式 ");
                                     HookGetOutPushStream();
@@ -189,7 +186,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
      *
      * @return 进程号
      */
-    private  String getCurProcessName(Context context) {
+    private String getCurProcessName(Context context) {
 
         int pid = android.os.Process.myPid();
 
@@ -206,28 +203,32 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     }
 
 
-
     /**
      * 判断 OkHttp是否存在 混淆 这步骤
      */
     private synchronized void HookOKClient() {
         try {
-            //OkHttpBuilder =  Class.forName(ClassPath);
-            if (OkHttpBuilder == null ) {
-                OkHttpBuilder = Class.forName("okhttp3.OkHttpClient$Builder", false, mLoader);
+            if (OkHttpClient == null) {
                 OkHttpClient = Class.forName("okhttp3.OkHttpClient", false, mLoader);
-            }
-            if (OkHttpBuilder != null&&OkHttpClient!=null) {
-                CLogUtils.e("拿到 Builder class ");
-                invoke();
             }
         } catch (ClassNotFoundException e) {
             CLogUtils.e("出现异常 对方没有使用OkHttp或者被 混淆了  开始尝试自动 获取 路径 " + e.getMessage());
             HookAndInitProguardClass();
+            return;
+        }
+        try {
+            if (OkHttpBuilder == null) {
+                OkHttpBuilder = Class.forName("okhttp3.OkHttpClient$Builder", false, mLoader);
+            }
+        } catch (ClassNotFoundException e) {
+            CLogUtils.e("出现异常 对方没有使用OkHttp或者被 混淆了  开始尝试自动 获取 路径 " + e.getMessage());
+            HookAndInitProguardClass();
+            return;
+        }
+        if (OkHttpBuilder != null && OkHttpClient != null) {
+            invoke();
         }
     }
-
-
 
 
 //    private void processDex(File file) {
@@ -326,13 +327,13 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             //将 OKIO 目录 加进去
                             for (String string : AllClassNameList) {
                                 if (string.startsWith(ioPath)) {
-                                    Class<?> aClass=null;
+                                    Class<?> aClass = null;
                                     try {
                                         aClass = Class.forName(string, false, mLoader);
                                     } catch (ClassNotFoundException e) {
                                         e.printStackTrace();
                                     }
-                                    if(aClass!=null) {
+                                    if (aClass != null) {
                                         mClassList.add(aClass);
                                     }
                                 }
@@ -374,7 +375,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         for (int i = 0; i < AllClassNameList.size(); i++) {
             try {
                 if (AllClassNameList.get(i).contains("okhttp3") || AllClassNameList.get(i).contains("okio")) {//在当前所有可执行的类里面查找包含有该包名的所有类
-                    MClass= Class.forName(AllClassNameList.get(i), false, mLoader);
+                    MClass = Class.forName(AllClassNameList.get(i), false, mLoader);
                     if (AllClassNameList.get(i).contains("okhttp3.logging")) {
                         OkHttpLoggerList.add(AllClassNameList.get(i));
                     }
@@ -395,7 +396,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     /**
      * 获取 ClientCLass的方法
      */
-    private  synchronized  void getClientClass() {
+    private synchronized void getClientClass() {
         if (mClassList.size() == 0) {
             CLogUtils.e("全部的 集合 mClassList  的个数 为 0  ");
             return;
@@ -419,7 +420,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     /**
      * 混淆 以后 获取  集合并添加 拦截器的方法
      */
-    private  synchronized  void getBuilder() {
+    private synchronized void getBuilder() {
         if (OkHttpClient == null) {
             CLogUtils.e("混淆以后  OkHttpClient==Null ");
             //没找到 OkHttp的 主要类 直接 Hook底层
@@ -434,7 +435,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         }
     }
 
-    private  synchronized void HookBuilderConstructor() {
+    private synchronized void HookBuilderConstructor() {
         CLogUtils.e("开始 Hook构造  ");
         //混淆 以后 只能 Hook 构造 目的 是为了 拿到 object
         //尝试 Hook 构造
@@ -442,16 +443,22 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             @Override
             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                 super.afterHookedMethod(param);
-                CLogUtils.e("Hook 到 构造函数  OkHttpBuilder");
-                AddInterceptors2(param);
+                if(FileUtils.readTxtFile(Key.ConstructorFlag).equals("0")) {
+                    FileUtils.SaveLoadPackageFlag("1", Key.ConstructorFlag);
+                    CLogUtils.e("Hook 到 构造函数  OkHttpBuilder");
+                    AddInterceptors2(param);
+                }
             }
         });
         XposedHelpers.findAndHookConstructor(OkHttpClient, new XC_MethodHook() {
             @Override
             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                 super.afterHookedMethod(param);
-                CLogUtils.e("Hook 到 构造函数  OkHttpClient");
-                AddInterceptors2(param);
+                if(FileUtils.readTxtFile(Key.ConstructorFlag).equals("0")) {
+                    FileUtils.SaveLoadPackageFlag("1", Key.ConstructorFlag);
+                    CLogUtils.e("Hook 到 构造函数  OkHttpClient");
+                    AddInterceptors2(param);
+                }
             }
         });
     }
@@ -463,23 +470,23 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         int ListTypeCount = 0;
         int FinalTypeCount = 0;
         Field[] fields = ccc.getDeclaredFields();
-        List<Field> List = new ArrayList<>();
+        List<Field> List66 = new ArrayList<>();
         for (Field field : fields) {
             String type = field.getType().getName();
             //四个 集合
-            if (type.contains(Key.ListType)) {
+            if (type.contains(List.class.getName())) {
                 ListTypeCount++;
             }
             //2 个 为 final类型
-            if (type.contains(Key.ListType) && Modifier.isFinal(field.getModifiers())) {
-                List.add(field);
+            if (type.contains(List.class.getName()) && Modifier.isFinal(field.getModifiers())) {
+                List66.add(field);
                 FinalTypeCount++;
             }
         }
         //四个 List 两个 2 final  并且 包含父类名字
         if (ListTypeCount == 4 && FinalTypeCount == 2 && ccc.getName().contains(OkHttpClient.getName())) {
             CLogUtils.e(" 找到 Builer  " + ccc.getName());
-            mFieldArrayList.addAll(List);
+            mFieldArrayList.addAll(List66);
             return true;
         }
         return false;
@@ -499,11 +506,11 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             //CLogUtils.e(" 复合 规则 该 Field是      " + type  +"是否包含      "+ type.contains(Key.ListType) +"   是否是 final类型  "+Modifier.isFinal(field.getModifiers()));
 
             //四个 集合 四个final 特征
-            if (type.contains(Key.ListType) && Modifier.isFinal(field.getModifiers())) {
+            if (type.contains(List.class.getName()) && Modifier.isFinal(field.getModifiers())) {
                 //CLogUtils.e(" 复合 规则 该 Field是      " + field.getName() + " ");
                 typeCount++;
             }
-            if (type.contains(Key.ListType) && Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers())) {
+            if (type.contains(List.class.getName()) && Modifier.isFinal(field.getModifiers()) && Modifier.isStatic(field.getModifiers())) {
                 //CLogUtils.e(" 复合 规则 该 Field是      " + field.getName() + " ");
                 StaticCount++;
             }
@@ -526,7 +533,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         CLogUtils.e("开始 获取全部的类名  ");
         try {
             //系统的 classloader是 Pathclassloader需要 拿到他的 父类 BaseClassloader才有 pathList
-            if(mLoader==null){
+            if (mLoader == null) {
                 return;
             }
             Field pathListField = mLoader.getClass().getSuperclass().getDeclaredField("pathList");
@@ -565,6 +572,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             e.printStackTrace();
         }
     }
+
     private void getDexFileClassName(DexFile dexFile, List<String> classNameList) {
         //获取df中的元素  这里包含了所有可执行的类名 该类名包含了包名+类名的方式
         Enumeration<String> enumeration = dexFile.entries();
@@ -613,7 +621,8 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         }
     }
 
-    private  int InterceptorsFlag=0;
+    private int InterceptorsFlag = 0;
+
     private void AddInterceptors2(XC_MethodHook.MethodHookParam param) {
         try {
             if (mFieldArrayList.size() == 2) {
@@ -628,9 +637,9 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                     CLogUtils.e("没有 拿到 拦截器   开始 动态代理  自动识别   ");
                     //防止 拦截器多次添加
                     Object httpLoggingInterceptorImp = getHttpLoggingInterceptorImp();
-                    if (httpLoggingInterceptorImp != null &&InterceptorsFlag==0) {
+                    if (httpLoggingInterceptorImp != null && InterceptorsFlag == 0) {
                         interceptors.add(httpLoggingInterceptorImp);
-                        InterceptorsFlag=1;
+                        InterceptorsFlag = 1;
                         CLogUtils.e("动态代理   拦截器 设置成功  ");
                     }
                 }
@@ -702,44 +711,54 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         }
     }
 
+    int getHttpLoggingInterceptorFlag = 0;
 
     @NonNull
     private Object getHttpLoggingInterceptor() {
         try {
             //第一步 首先  判断 本身项目里 是否存在 拦截器
             //okhttp3.logging.HttpLoggingInterceptor
-            mHttpLoggingInterceptor = Class.forName("okhttp3.logging.HttpLoggingInterceptor", true, mLoader);
-            //okhttp3.logging.HttpLoggingInterceptor$Logger
-            mHttpLoggingInterceptorLoggerClass = Class.forName("okhttp3.logging.HttpLoggingInterceptor$Logger", true, mLoader);
-
+            try {
+                mHttpLoggingInterceptor = Class.forName("okhttp3.logging.HttpLoggingInterceptor", false, mLoader);
+            } catch (ClassNotFoundException e) {
+                CLogUtils.e("getHttpLoggingInterceptor  拦截器初始化出现异常  ClassNotFoundException  " + e.getMessage());
+                if (mFieldArrayList.size() == 2) {
+                    //混淆 无法 动态 加载
+                    return getOkHttpLoggingInterceptor();
+                }
+                // 没有 混淆 可以动态 加载
+                return initLoggingInterceptor();
+            }
+            try {
+                mHttpLoggingInterceptorLoggerClass = Class.forName("okhttp3.logging.HttpLoggingInterceptor$Logger", false, mLoader);
+            } catch (ClassNotFoundException e) {
+                CLogUtils.e("getHttpLoggingInterceptor  拦截器初始化出现异常  ClassNotFoundException  " + e.getMessage());
+                if (mFieldArrayList.size() == 2) {
+                    //混淆 无法 动态 加载
+                    return getOkHttpLoggingInterceptor();
+                }
+                // 没有 混淆 可以动态 加载
+                return initLoggingInterceptor();
+            }
             if (mHttpLoggingInterceptor != null && mHttpLoggingInterceptorLoggerClass != null) {
                 CLogUtils.e("拿到了 拦截器 log");
                 return InitInterceptor(false);
             }
-
-        } catch (ClassNotFoundException e) {
-            CLogUtils.e("getHttpLoggingInterceptor  拦截器初始化出现异常  ClassNotFoundException  " + e.getMessage());
-            //判断 是否是 混淆类型
-            if (mFieldArrayList.size() == 2) {
-                //混淆 无法 动态 加载
-                return getOkHttpLoggingInterceptor();
-            }
-            // 没有 混淆 可以动态 加载
-            return initLoggingInterceptor();
-        } catch (InstantiationException e) {
+        }
+        catch (InstantiationException e) {
             CLogUtils.e("getHttpLoggingInterceptor  拦截器初始化出现异常  InstantiationException  " + e.getMessage());
             e.printStackTrace();
         } catch (IllegalAccessException e) {
             CLogUtils.e("getHttpLoggingInterceptor  拦截器初始化出现异常  IllegalAccessException  " + e.getMessage());
-
             e.printStackTrace();
         } catch (InvocationTargetException e) {
             CLogUtils.e("getHttpLoggingInterceptor  拦截器初始化出现异常  InvocationTargetException  " + e.getMessage());
-
             e.printStackTrace();
         } catch (NoSuchMethodException e) {
             CLogUtils.e("getHttpLoggingInterceptor  拦截器初始化出现异常  NoSuchMethodException  " + e.getMessage());
-
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            CLogUtils.e("getHttpLoggingInterceptor  拦截器初始化出现异常  ClassNotFoundException  " + e.getMessage());
             e.printStackTrace();
         }
         return null;

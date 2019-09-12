@@ -46,7 +46,7 @@
 
         <meta-data
             android:name="xposeddescription"
-            android:value="一个简单的 注入模块"/>
+            android:value="OkHttp3抓包 注入模块"/>
 
         <meta-data
             android:name="xposedminversion"

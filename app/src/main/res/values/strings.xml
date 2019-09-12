@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">OkHttpCat</string>
+    <string name="joinQQ">mqqopensdkapi://bizAgent/qm/qr?url=http%3A%2F%2Fqm.qq.com%2Fcgi-bin%2Fqm%2Fqr%3Ffrom%3Dapp%26p%3Dandroid%26k%3Dhow_NwAQvL0wiN_DkC5kGPFSJ3BuUKSG</string>
 </resources>

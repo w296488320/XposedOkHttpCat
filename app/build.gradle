@@ -19,13 +19,13 @@ android {
         applicationId "Xposed.Okhttp.Cat"
         minSdkVersion 21
         targetSdkVersion 21
-        versionCode 2
-        versionName "2.0"
+        versionCode 3
+        versionName "2.1"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
 

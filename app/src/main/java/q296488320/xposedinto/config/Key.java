@@ -9,6 +9,14 @@ public class Key {
     public static String APP_INFO="APP_INFO";
     public static String MODEL="MODEL";
 
-    public static String ListType="java.util.List";
+
+
+
+
+
+    public static String OnCreateFlag="OnCreateFlag";
+    public static String ConstructorFlag="OnConstructorFlag";
+
+
 
 }

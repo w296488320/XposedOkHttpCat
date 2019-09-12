@@ -16,6 +16,7 @@ import q296488320.xposedinto.App;
 import q296488320.xposedinto.Bean.AppBean;
 import q296488320.xposedinto.R;
 import q296488320.xposedinto.XpHook.Hook;
+import q296488320.xposedinto.config.Key;
 import q296488320.xposedinto.utils.CLogUtils;
 import q296488320.xposedinto.utils.Constants;
 import q296488320.xposedinto.utils.FileUtils;
@@ -101,7 +102,7 @@ public class MainListViewAdapter extends BaseAdapter{
         //[1]构造对话框的实例
         AlertDialog.Builder builder = new AlertDialog.Builder(mContext);
         //builder.setMessage("");
-        builder.setTitle("模式1 和 模式2 主要 针对 OkHttp 通杀是针对底层函数\n 如果需要分析发包的地方 可以选择 打印调用栈");
+        builder.setTitle("");
         final String[] items = {"模式1", "模式2","通杀模式","通杀模式(并打印调用栈)"};
         //builder.setMessage("默认是 模式1 如果 模式1 没有效果 切换 模式2 并重新打开 ");
         builder.setSingleChoiceItems(items, -1, (dialog, which) -> {
@@ -115,8 +116,7 @@ public class MainListViewAdapter extends BaseAdapter{
             }else if(which==3){
                 SpUtil.putString(mContext,MODEL,"4");
             }
-            //每一次选择 置零
-            FileUtils.SaveFlag("0");
+            CleanFlag();
             ToastUtils.showToast(App.getContext(),"保存成功"+ data.get(position).packageName +"   "+ items[which]);
             dialog.dismiss();
         });
@@ -124,7 +124,10 @@ public class MainListViewAdapter extends BaseAdapter{
         builder.show();
     }
 
-
+    private void CleanFlag() {
+        FileUtils.SaveLoadPackageFlag("0", Key.ConstructorFlag);
+        FileUtils.SaveLoadPackageFlag("0", Key.OnCreateFlag);
+    }
 
 
     private static class ViewHolder {

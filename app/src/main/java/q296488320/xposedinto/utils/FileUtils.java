@@ -105,7 +105,8 @@ public class FileUtils {
     }
 
 
-    public static void SaveFlag(String string) {
+    public static void SaveLoadPackageFlag(String string,String FileName) {
+
         FileWriter fw = null;
         try {
             if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
@@ -118,7 +119,7 @@ public class FileUtils {
                 }
 
 
-                File saveFile = new File(filedir, "OkHttpCatFlag" + ".txt");
+                File saveFile = new File(filedir, FileName + ".txt");
                 //第二个 参数 是否追加
                 fw = new FileWriter(saveFile, false);
                 PrintWriter pw = new PrintWriter(fw);
@@ -141,12 +142,12 @@ public class FileUtils {
     }
 
 
-    public static String readTxtFile() {
+    public static String readTxtFile(String fileName) {
         File filedir = new File(sdCardDir + File.separator + "OkHttpCat/Config/");  // 这里的AA为创建的AA文件夹，在根目录下
         if (!filedir.exists()) {
             filedir.mkdirs();
         }
-        File saveFile = new File(filedir, "OkHttpCatFlag" + ".txt");
+        File saveFile = new File(filedir, fileName + ".txt");
 
         StringBuilder sb = new StringBuilder();
         InputStreamReader read = null;
@@ -163,7 +164,7 @@ public class FileUtils {
                 sb.append(lineTxt);
             }
         } catch (Exception e) {
-            CLogUtils.e("读取文件出错");
+            CLogUtils.e("读取文件出错  "+e.getMessage());
             e.printStackTrace();
         } finally {
             closeStream(read);

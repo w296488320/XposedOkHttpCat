@@ -80,8 +80,10 @@ public class LogInterceptorImp implements InvocationHandler {
             }
             //需要先 拿到 RequestBody 类型
             Class RequestBodyClass = getRequestBodyClass();
+            CLogUtils.e("RequestBodyClass  的 名字是 "+RequestBodyClass.getName());
 
             Object RequestBodyObject = getRequestBodyObject(RequestObject, RequestBodyClass);
+
             //Get请求 没有 请求体  可能 存在 为Nulll的 情况
             if (RequestBodyObject != null) {
 
@@ -146,12 +148,19 @@ public class LogInterceptorImp implements InvocationHandler {
                     return ResponseObject;
 
                 } else {
-                    Object ResponseBodyObject = getResponseBodyObject(ResponseObject, mResponseBodyClass);
-                    if (ResponseBodyObject != null) {
-                        //调用 string()  方法  ResponseBody 里面的方法
-                        String ResponseBodyString = getStringMethodAndInvoke(ResponseBodyObject);
+                    //CLogUtils.e("ResponseObject  名字是      "+ResponseObject.getClass().getName());
+                    //CLogUtils.e("mResponseBodyClass  名字是      "+mResponseBodyClass.getName());
 
-                        CLogUtils.e("响应体 内容是  " + ResponseBodyString);
+                    Object ResponseBodyObject = getResponseBodyObject(ResponseObject, mResponseBodyClass);
+
+                    if (ResponseBodyObject != null) {
+                        CLogUtils.e("拿到 ResponseBodyObject 对象 "+ ResponseBodyObject.getClass().getName());
+                        //调用 string()  方法  ResponseBody 里面的方法
+
+
+                        String ResponseBodyString = getStringMethodAndInvoke(ResponseBodyObject,mResponseBodyClass);
+
+                        //CLogUtils.e("响应体 内容是  " + ResponseBodyString);
                         if (ResponseBodyString != null) {
                             mStringBuffer.append(ResponseBodyString).append("\n").append("<<< 响应体   --------------- END HTTP ").append("\n");
                         }
@@ -221,25 +230,26 @@ public class LogInterceptorImp implements InvocationHandler {
     /**
      * 获取  responseObject 里面的 string方法
      *
-     * @param responseObject
-     * @return
      */
-    private String getStringMethodAndInvoke(Object responseObject) throws Exception {
+    private String getStringMethodAndInvoke(Object ResponseBodyObject, Class responseBodyClass) throws Exception {
+
         try {
             try {
-                Method string = responseObject.getClass().getDeclaredMethod("string");
+                Method string = responseBodyClass.getDeclaredMethod("string");
                 if (string != null) {
                     string.setAccessible(true);
-                    return (String) string.invoke(responseObject);
+                    return (String) string.invoke(ResponseBodyObject);
                 }
             } catch (NoSuchMethodException e) {
-                Method[] declaredMethods = responseObject.getClass().getDeclaredMethods();
+                CLogUtils.e("没找到  string 方法 开始 遍历 ");
+                Method[] declaredMethods = responseBodyClass.getDeclaredMethods();
                 for (Method method : declaredMethods) {
+                    CLogUtils.e("当前方法 名字  "+method.getName()+"  返回值   "+method.getReturnType().getName()+"  参数 长度  "+ method.getParameterTypes().length);
                     if (method.getReturnType().getName().equals(String.class.getName()) &&
                             method.getParameterTypes().length == 0
                     ) {
                         method.setAccessible(true);
-                        return (String) method.invoke(responseObject);
+                        return (String) method.invoke(ResponseBodyObject);
                     }
                 }
             }
@@ -1119,32 +1129,49 @@ public class LogInterceptorImp implements InvocationHandler {
      */
     private Object getRequestBodyObject(Object requestObject, Class requestBodyClass) throws Exception {
         //返回类型 是 requestBodyClass 类型
-        Method[] declaredMethods = requestObject.getClass().getDeclaredMethods();
-        for (Method method : declaredMethods) {
-            if (method.getReturnType().getName().equals(requestBodyClass.getName())) {
-                try {
-                    method.setAccessible(true);
-                    return method.invoke(requestObject);
-                } catch (IllegalAccessException e) {
-                    CLogUtils.e("getRequestBodyObject  IllegalAccessException    " + e.getMessage());
-                    e.printStackTrace();
-                } catch (InvocationTargetException e) {
-                    CLogUtils.e("getRequestBodyObject  InvocationTargetException    " + e.getMessage());
-                    e.printStackTrace();
-                }
+
+
+//        Method[] declaredMethods = requestObject.getClass().getDeclaredMethods();
+//        for (Method method : declaredMethods) {
+//            if (method.getReturnType().getName().equals(requestBodyClass.getName())) {
+//                try {
+//                    method.setAccessible(true);
+//                    return method.invoke(requestObject);
+//                } catch (IllegalAccessException e) {
+//                    CLogUtils.e("getRequestBodyObject  IllegalAccessException    " + e.getMessage());
+//                    e.printStackTrace();
+//                } catch (InvocationTargetException e) {
+//                    CLogUtils.e("getRequestBodyObject  InvocationTargetException    " + e.getMessage());
+//                    e.printStackTrace();
+//                }
+//            }
+//        }
+
+
+        Field[] declaredFields = requestObject.getClass().getDeclaredFields();
+        for(Field field:declaredFields){
+            if(field.getType().getName().equals(requestBodyClass.getName())){
+                field.setAccessible(true);
+                return  field.get(requestObject);
             }
         }
+
         throw new Exception("getRequestBodyObject == Null ");
     }
 
     private Class getRequestBodyClass() throws Exception {
-        //本身是 abstract 类 里面有2个抽象方法
+        //本身是 abstract 类 里面有2个抽象方法  一个 返回类型是 void 一个是  MediaType
+        //字段的个数为0
+        Class mediaTypeClass = getMediaTypeClass();
         for (Class Mclass : Hook.mClassList) {
-            if (Modifier.isAbstract(Mclass.getModifiers())) {
+            if (Modifier.isAbstract(Mclass.getModifiers())&&Mclass.getDeclaredFields().length==0) {
                 int conut = 0;
                 Method[] declaredMethods = Mclass.getDeclaredMethods();
                 for (Method method : declaredMethods) {
-                    if (Modifier.isAbstract(method.getModifiers())) {
+                    if (Modifier.isAbstract(method.getModifiers())&&method.getReturnType().getName().equals(void.class.getName())) {
+                        conut++;
+                    }
+                    if(Modifier.isAbstract(method.getModifiers())&&method.getReturnType().getName().equals(mediaTypeClass.getName())){
                         conut++;
                     }
                 }
