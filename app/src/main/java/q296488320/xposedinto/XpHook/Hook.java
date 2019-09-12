@@ -34,6 +34,7 @@ import q296488320.xposedinto.LogImp.LogInterceptorImp;
 import q296488320.xposedinto.config.Key;
 import q296488320.xposedinto.utils.CLogUtils;
 import q296488320.xposedinto.utils.FileUtils;
+import q296488320.xposedinto.utils.SpUtil;
 
 //import org.jf.dexlib2.DexFileFactory;
 //import org.jf.dexlib2.Opcodes;
@@ -113,16 +114,17 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         try {
             shared = new XSharedPreferences("Xposed.Okhttp.Cat", "config");
             shared.reload();
+
             InvokPackage = shared.getString("APP_INFO", "");
             MODEL = shared.getString("MODEL", "1");
+
             if (MODEL.equals("4")) {
                 isShowStacktTrash = true;
             }
 
             //先重启 选择 好 要进行Hook的 app
-
-
             if (!"".equals(InvokPackage) && lpparam.packageName.equals(InvokPackage)) {
+
                 HookAttach();
             }
         } catch (Exception e) {
@@ -146,6 +148,8 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         mOtherContext = (Context) param.args[0];
                         mLoader = mOtherContext.getClassLoader();
                         CLogUtils.e("拿到 classloader");
+                        SpUtil.putString(mOtherContext,Key.OnCreateFlag,"0");
+                        SpUtil.putString(mOtherContext,Key.ConstructorFlag,"0");
                     }
                 });
 
@@ -158,16 +162,14 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         CLogUtils.e("进程 名字   " + processName);
                         if (!TextUtils.isEmpty(processName)) {
                             boolean defaultProcess = processName.equals(mOtherContext.getPackageName());
-                            boolean equals = FileUtils.readTxtFile(Key.OnCreateFlag).equals("0");
+                            //如果 比较是 0
+                            boolean equals = SpUtil.getString(mOtherContext, Key.OnCreateFlag, "").equals("0");
                             //只在主线程 处理 并且 只处理一次
                             if (defaultProcess && equals) {
                                 //当前应用的初始化
                                 CLogUtils.e("Hook到    onCreate");
-
-                                //放在 sd卡 保存 是否已经 处理过  这块 为了防止多进程
                                 // 被添加多次 onCreate 和 构造 都有可能被执行多次
-                                FileUtils.SaveLoadPackageFlag("1",Key.OnCreateFlag);
-
+                                SpUtil.putString(mOtherContext,Key.OnCreateFlag,"1");
                                 if (MODEL.equals("3") || MODEL.equals("4")) {
                                     CLogUtils.e("使用了 通杀模式 ");
                                     HookGetOutPushStream();
@@ -443,10 +445,12 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             @Override
             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                 super.afterHookedMethod(param);
-                if(FileUtils.readTxtFile(Key.ConstructorFlag).equals("0")) {
-                    FileUtils.SaveLoadPackageFlag("1", Key.ConstructorFlag);
+                boolean equals = SpUtil.getString(mOtherContext, Key.ConstructorFlag, "").equals("0");
+                if(equals) {
+
                     CLogUtils.e("Hook 到 构造函数  OkHttpBuilder");
                     AddInterceptors2(param);
+                    SpUtil.putString(mOtherContext,Key.ConstructorFlag,"1");
                 }
             }
         });
@@ -454,10 +458,12 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             @Override
             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                 super.afterHookedMethod(param);
-                if(FileUtils.readTxtFile(Key.ConstructorFlag).equals("0")) {
-                    FileUtils.SaveLoadPackageFlag("1", Key.ConstructorFlag);
-                    CLogUtils.e("Hook 到 构造函数  OkHttpClient");
+
+                boolean equals = SpUtil.getString(mOtherContext, Key.ConstructorFlag, "").equals("0");
+                if(equals) {
+                    CLogUtils.e("Hook 到 构造函数  OkHttpClent");
                     AddInterceptors2(param);
+                    SpUtil.putString(mOtherContext,Key.ConstructorFlag,"1");
                 }
             }
         });
@@ -662,6 +668,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         Object InterceptorObject;
         if (InterceptorClass != null) {
             CLogUtils.e("拿到 拦截器 接口class   " + InterceptorClass.getName());
+
             LogInterceptorImp logInterceptorImp = new LogInterceptorImp();
 
             InterceptorObject = Proxy.newProxyInstance(mLoader, new Class[]{InterceptorClass}, logInterceptorImp);
@@ -996,6 +1003,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             mHttpLoggingInterceptorLoggerClass = mDexClassLoader.loadClass("okhttp3.logging.HttpLoggingInterceptor$Logger");
             if (mHttpLoggingInterceptorLoggerClass != null && mHttpLoggingInterceptor != null) {
                 CLogUtils.e("动态 加载 classloader 成功 ");
+
                 return InitInterceptor(true);
             }
         } catch (ClassNotFoundException e) {

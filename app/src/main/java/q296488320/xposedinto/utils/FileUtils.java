@@ -105,73 +105,73 @@ public class FileUtils {
     }
 
 
-    public static void SaveLoadPackageFlag(String string,String FileName) {
-
-        FileWriter fw = null;
-        try {
-            if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-
-                // 2.1的时候为：/sdcard，所以使用静态方法得到路径会好一点。
-                //String s=Environment.getExternalStorageDirectory();
-                File filedir = new File(sdCardDir + File.separator + "OkHttpCat/Config/");  // 这里的AA为创建的AA文件夹，在根目录下
-                if (!filedir.exists()) {
-                    filedir.mkdirs();
-                }
-
-
-                File saveFile = new File(filedir, FileName + ".txt");
-                //第二个 参数 是否追加
-                fw = new FileWriter(saveFile, false);
-                PrintWriter pw = new PrintWriter(fw);
-                pw.println(string);
-                pw.flush();
-                try {
-                    fw.flush();
-                    pw.close();
-                    fw.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-
-        } catch (IOException e) {
-
-            e.printStackTrace();
-
-        }
-    }
-
-
-    public static String readTxtFile(String fileName) {
-        File filedir = new File(sdCardDir + File.separator + "OkHttpCat/Config/");  // 这里的AA为创建的AA文件夹，在根目录下
-        if (!filedir.exists()) {
-            filedir.mkdirs();
-        }
-        File saveFile = new File(filedir, fileName + ".txt");
-
-        StringBuilder sb = new StringBuilder();
-        InputStreamReader read = null;
-        BufferedReader bufferedReader = null;
-        InputStream fi = null;
-        try {
-            String encoding = "UTF-8";
-            fi = new FileInputStream(saveFile);
-
-            read = new InputStreamReader(fi, encoding);// 考虑到编码格式
-            bufferedReader = new BufferedReader(read);
-            String lineTxt;
-            while ((lineTxt = bufferedReader.readLine()) != null) {
-                sb.append(lineTxt);
-            }
-        } catch (Exception e) {
-            CLogUtils.e("读取文件出错  "+e.getMessage());
-            e.printStackTrace();
-        } finally {
-            closeStream(read);
-            closeStream(bufferedReader);
-        }
-        return sb.toString();
-    }
+//    public static void SaveLoadPackageFlag(String string,String FileName) {
+//
+//        FileWriter fw = null;
+//        try {
+//            if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
+//
+//                // 2.1的时候为：/sdcard，所以使用静态方法得到路径会好一点。
+//                //String s=Environment.getExternalStorageDirectory();
+//                File filedir = new File(sdCardDir + File.separator + "OkHttpCat/Config/");  // 这里的AA为创建的AA文件夹，在根目录下
+//                if (!filedir.exists()) {
+//                    filedir.mkdirs();
+//                }
+//
+//
+//                File saveFile = new File(filedir, FileName + ".txt");
+//                //第二个 参数 是否追加
+//                fw = new FileWriter(saveFile, false);
+//                PrintWriter pw = new PrintWriter(fw);
+//                pw.println(string);
+//                pw.flush();
+//                try {
+//                    fw.flush();
+//                    pw.close();
+//                    fw.close();
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//
+//        } catch (IOException e) {
+//
+//            e.printStackTrace();
+//
+//        }
+//    }
+//
+//
+//    public static String readTxtFile(String fileName) {
+//        File filedir = new File(sdCardDir + File.separator + "OkHttpCat/Config/");  // 这里的AA为创建的AA文件夹，在根目录下
+//        if (!filedir.exists()) {
+//            filedir.mkdirs();
+//        }
+//        File saveFile = new File(filedir, fileName + ".txt");
+//
+//        StringBuilder sb = new StringBuilder();
+//        InputStreamReader read = null;
+//        BufferedReader bufferedReader = null;
+//        InputStream fi = null;
+//        try {
+//            String encoding = "UTF-8";
+//            fi = new FileInputStream(saveFile);
+//
+//            read = new InputStreamReader(fi, encoding);// 考虑到编码格式
+//            bufferedReader = new BufferedReader(read);
+//            String lineTxt;
+//            while ((lineTxt = bufferedReader.readLine()) != null) {
+//                sb.append(lineTxt);
+//            }
+//        } catch (Exception e) {
+//            CLogUtils.e("读取文件出错  "+e.getMessage());
+//            e.printStackTrace();
+//        } finally {
+//            closeStream(read);
+//            closeStream(bufferedReader);
+//        }
+//        return sb.toString();
+//    }
 
 
     /**

@@ -116,7 +116,7 @@ public class MainListViewAdapter extends BaseAdapter{
             }else if(which==3){
                 SpUtil.putString(mContext,MODEL,"4");
             }
-            CleanFlag();
+            //CleanFlag();
             ToastUtils.showToast(App.getContext(),"保存成功"+ data.get(position).packageName +"   "+ items[which]);
             dialog.dismiss();
         });
@@ -124,10 +124,13 @@ public class MainListViewAdapter extends BaseAdapter{
         builder.show();
     }
 
-    private void CleanFlag() {
-        FileUtils.SaveLoadPackageFlag("0", Key.ConstructorFlag);
-        FileUtils.SaveLoadPackageFlag("0", Key.OnCreateFlag);
-    }
+//    private void CleanFlag() {
+////        FileUtils.SaveLoadPackageFlag("0", Key.ConstructorFlag);
+////        FileUtils.SaveLoadPackageFlag("0", Key.OnCreateFlag);
+//
+//        SpUtil.putString(mContext,Key.OnCreateFlag,"0");
+//        SpUtil.putString(mContext,Key.ConstructorFlag,"0");
+//    }
 
 
     private static class ViewHolder {
