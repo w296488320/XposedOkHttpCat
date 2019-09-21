@@ -25,6 +25,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import dalvik.system.DexClassLoader;
 import dalvik.system.DexFile;
+import dalvik.system.PathClassLoader;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XSharedPreferences;
@@ -34,6 +35,7 @@ import q296488320.xposedinto.LogImp.LogInterceptorImp;
 import q296488320.xposedinto.config.Key;
 import q296488320.xposedinto.utils.CLogUtils;
 import q296488320.xposedinto.utils.FileUtils;
+import q296488320.xposedinto.utils.HookSpUtil;
 import q296488320.xposedinto.utils.SpUtil;
 
 //import org.jf.dexlib2.DexFileFactory;
@@ -139,6 +141,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
      * hook  Attach方法
      */
     private synchronized void HookAttach() {
+
         XposedHelpers.findAndHookMethod(Application.class, "attach",
                 Context.class,
                 new XC_MethodHook() {
@@ -148,8 +151,10 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         mOtherContext = (Context) param.args[0];
                         mLoader = mOtherContext.getClassLoader();
                         CLogUtils.e("拿到 classloader");
-                        SpUtil.putString(mOtherContext,Key.OnCreateFlag,"0");
-                        SpUtil.putString(mOtherContext,Key.ConstructorFlag,"0");
+                        HookSpUtil.putString(mOtherContext,"OnCreateFlag","0");
+                        HookSpUtil.putString(mOtherContext,"ConstructorFlag","0");
+                        CLogUtils.e("保存 完毕  ");
+
                     }
                 });
 
@@ -163,13 +168,13 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         if (!TextUtils.isEmpty(processName)) {
                             boolean defaultProcess = processName.equals(mOtherContext.getPackageName());
                             //如果 比较是 0
-                            boolean equals = SpUtil.getString(mOtherContext, Key.OnCreateFlag, "").equals("0");
+                            boolean equals = HookSpUtil.getString(mOtherContext, "OnCreateFlag", "").equals("0");
                             //只在主线程 处理 并且 只处理一次
                             if (defaultProcess && equals) {
                                 //当前应用的初始化
                                 CLogUtils.e("Hook到    onCreate");
                                 // 被添加多次 onCreate 和 构造 都有可能被执行多次
-                                SpUtil.putString(mOtherContext,Key.OnCreateFlag,"1");
+                                HookSpUtil.putString(mOtherContext,"OnCreateFlag","1");
                                 if (MODEL.equals("3") || MODEL.equals("4")) {
                                     CLogUtils.e("使用了 通杀模式 ");
                                     HookGetOutPushStream();
@@ -281,7 +286,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         getAllClassName();
         initAllClass();
         AddClassOkIOPackage();
-
         //第一步 先开始 拿到 OkHttp 里面的 类  如Client 和 Builder
         getClientClass();
         getBuilder();
@@ -445,12 +449,11 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             @Override
             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                 super.afterHookedMethod(param);
-                boolean equals = SpUtil.getString(mOtherContext, Key.ConstructorFlag, "").equals("0");
+                boolean equals = HookSpUtil.getString(mOtherContext, "ConstructorFlag", "").equals("0");
                 if(equals) {
-
                     CLogUtils.e("Hook 到 构造函数  OkHttpBuilder");
                     AddInterceptors2(param);
-                    SpUtil.putString(mOtherContext,Key.ConstructorFlag,"1");
+                    HookSpUtil.putString(mOtherContext,"ConstructorFlag","1");
                 }
             }
         });
@@ -458,12 +461,11 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             @Override
             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                 super.afterHookedMethod(param);
-
-                boolean equals = SpUtil.getString(mOtherContext, Key.ConstructorFlag, "").equals("0");
+                boolean equals = HookSpUtil.getString(mOtherContext,"ConstructorFlag", "").equals("0");
                 if(equals) {
                     CLogUtils.e("Hook 到 构造函数  OkHttpClent");
                     AddInterceptors2(param);
-                    SpUtil.putString(mOtherContext,Key.ConstructorFlag,"1");
+                    HookSpUtil.putString(mOtherContext,"ConstructorFlag","1");
                 }
             }
         });
@@ -523,7 +525,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         }
         //CLogUtils.e("field 符合标准   个数 是    " + typeCount);
 
-        if (StaticCount >= 2 && typeCount == 6 && mClass.getInterfaces().length >= 2) {
+        if (StaticCount >= 2 && typeCount == 6 && mClass.getInterfaces().length >= 1) {
             CLogUtils.e(" 该类的名字是  " + mClass.getName());
             return true;
         }
@@ -542,6 +544,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             if (mLoader == null) {
                 return;
             }
+
             Field pathListField = mLoader.getClass().getSuperclass().getDeclaredField("pathList");
             if (pathListField != null) {
                 pathListField.setAccessible(true);

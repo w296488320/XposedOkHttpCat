@@ -4,14 +4,14 @@ apply plugin: 'stringfog'
 
 stringfog {
     // 这是加解密key，可以自由定义。
-    key 'Zx'
+    key 'zhenxi'
     // 开关
     enable true
 
     // 加解密库的实现类路径，需和上面配置的加解密算法库一致。
     implementation 'com.github.megatronking.stringfog.xor.StringFogImpl'
     // 指定需加密的代码包路径，可配置多个，未指定将默认全部加密。
-    fogPackages = ['q296488320.xposedinto.XpHook.Hook','q296488320.xposedinto.LogImp.LogInterceptorImp']
+//    fogPackages = ['q296488320.xposedinto.XpHook.Hook','q296488320.xposedinto.LogImp.LogInterceptorImp']
 }
 android {
     compileSdkVersion 26
@@ -26,6 +26,12 @@ android {
 
     signingConfigs {
         debug {
+            storeFile file("C:/Users/Administrator/Desktop/lyhKey.jks")
+            storePassword 'wcexit'
+            keyAlias 'wcexit'
+            keyPassword 'wcexit'
+        }
+        release {
             storeFile file("C:/Users/Administrator/Desktop/lyhKey.jks")
             storePassword 'wcexit'
             keyAlias 'wcexit'

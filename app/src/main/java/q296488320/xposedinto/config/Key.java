@@ -14,8 +14,8 @@ public class Key {
 
 
 
-    public static String OnCreateFlag="OnCreateFlag";
-    public static String ConstructorFlag="OnConstructorFlag";
+//    public static String OnCreateFlag="OnCreateFlag";
+//    public static String ConstructorFlag="OnConstructorFlag";
 
 
 
