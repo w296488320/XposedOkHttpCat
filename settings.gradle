@@ -1,1 +1,1 @@
-include ':app',':dexlib2'
+include ':app',':dexlib2', ':encryptstack'
