@@ -82,4 +82,9 @@ public class App extends Application {
     public static Context getContext() {
         return mContext;
     }
+
+
+//    public static  String getApplicaitionName(){
+//        return getContext().getPackageName();
+//    }
 }

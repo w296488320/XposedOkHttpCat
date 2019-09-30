@@ -36,7 +36,7 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
-    private final SimpleDateFormat mSimpleDateFormat = new SimpleDateFormat("mm分:ss秒:SSS ");
+    private final SimpleDateFormat mSimpleDateFormat = new SimpleDateFormat("YYYY-MM-dd  mm分:ss秒");
     /**
      * 进行 注入的 app 名字
      */
@@ -134,7 +134,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         super.beforeHookedMethod(param);
                         StringBuilder mStringBuilder = new StringBuilder(Base64EncodeToString);
                         byte[] bytes = (byte[]) param.args[0];
-                        mStringBuilder.append("方法名字   " + Base64EncodeToString + "\n").
+                        mStringBuilder.append("方法名字   Base64." + Base64EncodeToString + "\n").
                                 append("时间  " + mSimpleDateFormat.format(new Date()) + "\n").
                                 append(param.thisObject.getClass().getName()).append(".").append(Base64EncodeToString).append("\n").
                                 append(Base64EncodeToString + "参数1 U8编码是   ").append(new String(bytes, StandardCharsets.UTF_8)).append("\n").
@@ -151,17 +151,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         mStringBuilder.append("\n");
                         String Result = param.getResult().toString();
                         mStringBuilder.append(Base64EncodeToString + "返回结果   ").append(Result).append("\n");
-                        try {
-                            int b = 1 / 0;
-                        } catch (Exception e) {
-                            StackTraceElement[] stackTrace = e.getStackTrace();
-                            mStringBuilder.append(" --------------------------  >>>> " + "\n");
-                            for (StackTraceElement stackTraceElement : stackTrace) {
-                                mStringBuilder.append("   栈信息      ").append(stackTraceElement.getClassName()).append(".").append(stackTraceElement.getMethodName()).append("\n");
-                            }
-                            mStringBuilder.append("<<<< --------------------------  " + "\n");
-                        }
-                        mStringBuilder.append("\n\n\n");
+                        getStackTraceMessage(mStringBuilder);
 
                         FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
                     }
@@ -179,7 +169,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         super.beforeHookedMethod(param);
                         StringBuilder mStringBuilder = new StringBuilder(Base64Encode);
                         byte[] bytes = (byte[]) param.args[0];
-                        mStringBuilder.append("方法名字   " + Base64Encode).append("\n").
+                        mStringBuilder.append("方法名字   Base64." + Base64Encode).append("\n").
                                 append(mSimpleDateFormat.format(new Date())).append("\n").
                                 append(param.thisObject.getClass().getName()).append(".").append(Base64Encode).append("\n").
                                 append("参数1  U8编码 " + new String(bytes, StandardCharsets.UTF_8)).append("\n").
@@ -198,17 +188,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         mStringBuilder.append(Base64Encode + "返回结果   U8编码 ").append(new String(Result, StandardCharsets.UTF_8)).append("\n");
                         mStringBuilder.append(Base64Encode + "返回结果   16进制 编码 ").append(bytesToHexString(Result)).append("\n");
 
-                        try {
-                            int b = 1 / 0;
-                        } catch (Exception e) {
-                            StackTraceElement[] stackTrace = e.getStackTrace();
-                            mStringBuilder.append(" --------------------------  >>>> " + "\n");
-                            for (StackTraceElement stackTraceElement : stackTrace) {
-                                mStringBuilder.append("   栈信息      ").append(stackTraceElement.getClassName()).append(".").append(stackTraceElement.getMethodName()).append("\n");
-                            }
-                            mStringBuilder.append("<<<< --------------------------  " + "\n");
-                        }
-                        mStringBuilder.append("\n\n\n");
+                        getStackTraceMessage(mStringBuilder);
 
                         FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
                     }
@@ -227,7 +207,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         StringBuilder mStringBuilder = new StringBuilder(Base64Decode);
 
                         byte[] bytes = (byte[]) param.args[0];
-                        mStringBuilder.append("    方法名字   " + Base64Decode + "   \n").
+                        mStringBuilder.append("    方法名字   Base64." + Base64Decode + "   \n").
                                 append(mSimpleDateFormat.format(new Date()) + "\n").
                                 append(param.thisObject.getClass().getName()).append(".").append(Base64Decode).append("\n").
                                 append("参数 1  U8编码 ").append(new String(bytes, StandardCharsets.UTF_8)).append("\n");
@@ -246,17 +226,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
                         byte[] Result = (byte[]) param.getResult();
                         mStringBuilder.append("返回结果  U8编码 ").append(new String(Result, StandardCharsets.UTF_8)).append("\n");
-                        try {
-                            int b = 1 / 0;
-                        } catch (Exception e) {
-                            StackTraceElement[] stackTrace = e.getStackTrace();
-                            mStringBuilder.append(" --------------------------  >>>> " + "\n");
-                            for (StackTraceElement stackTraceElement : stackTrace) {
-                                mStringBuilder.append("   栈信息      ").append(stackTraceElement.getClassName()).append(".").append(stackTraceElement.getMethodName()).append("\n");
-                            }
-                            mStringBuilder.append("<<<< --------------------------  " + "\n");
-                        }
-                        mStringBuilder.append("\n\n\n");
+                        getStackTraceMessage(mStringBuilder);
 
                         FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
                     }
@@ -275,7 +245,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         StringBuilder mStringBuilder = new StringBuilder(Base64Decode);
 
                         String bytes = param.args[0].toString();
-                        mStringBuilder.append("    方法名字   " + Base64Decode + "   \n").
+                        mStringBuilder.append("    方法名字   Base64." + Base64Decode + "   \n").
                                 append(mSimpleDateFormat.format(new Date()) + "\n").
                                 append(param.thisObject.getClass().getName()).append(".").append(Base64Decode).append("\n").
                                 append("参数 1   ").append(bytes);
@@ -291,17 +261,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         byte[] Result = (byte[]) param.getResult();
                         mStringBuilder.append("返回结果  U8编码 ").append(new String(Result, StandardCharsets.UTF_8)).append("\n");
                         mStringBuilder.append("返回结果  16进制 编码 ").append(bytesToHexString(Result)).append("\n");
-                        try {
-                            int b = 1 / 0;
-                        } catch (Exception e) {
-                            StackTraceElement[] stackTrace = e.getStackTrace();
-                            mStringBuilder.append(" --------------------------  >>>> " + "\n");
-                            for (StackTraceElement stackTraceElement : stackTrace) {
-                                mStringBuilder.append("   栈信息      ").append(stackTraceElement.getClassName()).append(".").append(stackTraceElement.getMethodName()).append("\n");
-                            }
-                            mStringBuilder.append("<<<< --------------------------  " + "\n");
-                        }
-                        mStringBuilder.append("\n\n\n");
+                        getStackTraceMessage(mStringBuilder);
 
                         FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
                     }
@@ -321,7 +281,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         StringBuilder mStringBuilder = new StringBuilder(Md5Digest);
 
                         byte[] bytes = (byte[]) param.args[0];
-                        mStringBuilder.append("    方法名字   " + Md5Digest + "   \n").
+                        mStringBuilder.append("    方法名字   MD5加密 " + Md5Digest + "   \n").
                                 append(mSimpleDateFormat.format(new Date()) + "\n").
                                 append(param.thisObject.getClass().getName()).append(".").append(Md5Digest).append("\n").
                                 append("参数 1   U8编码   ").append(new String(bytes, StandardCharsets.UTF_8)).append("\n");
@@ -345,17 +305,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             result += temp;
                         }
                         mStringBuilder.append("Md5 返回结果  ").append(result).append("\n");
-                        try {
-                            int b = 1 / 0;
-                        } catch (Exception e) {
-                            StackTraceElement[] stackTrace = e.getStackTrace();
-                            mStringBuilder.append(" --------------------------  >>>> " + "\n");
-                            for (StackTraceElement stackTraceElement : stackTrace) {
-                                mStringBuilder.append("   栈信息      ").append(stackTraceElement.getClassName()).append(".").append(stackTraceElement.getMethodName()).append("\n");
-                            }
-                            mStringBuilder.append("<<<< --------------------------  " + "\n");
-                        }
-                        mStringBuilder.append("\n\n\n");
+                        getStackTraceMessage(mStringBuilder);
 
                         FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
                     }
@@ -394,17 +344,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         mStringBuilder.append("加密  16进制   返回结果  ").append(bytesToHexString(Result)).append("\n");
                         mStringBuilder.append("加密  U8编码    返回结果  ").append(new String(Result, StandardCharsets.UTF_8)).append("\n");
 
-                        try {
-                            int b = 1 / 0;
-                        } catch (Exception e) {
-                            StackTraceElement[] stackTrace = e.getStackTrace();
-                            mStringBuilder.append(" --------------------------  >>>> " + "\n");
-                            for (StackTraceElement stackTraceElement : stackTrace) {
-                                mStringBuilder.append("   栈信息      ").append(stackTraceElement.getClassName()).append(".").append(stackTraceElement.getMethodName()).append("\n");
-                            }
-                            mStringBuilder.append("<<<< --------------------------  " + "\n");
-                        }
-                        mStringBuilder.append("\n\n\n");
+                        getStackTraceMessage(mStringBuilder);
 
                         FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
 
@@ -439,6 +379,9 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             mStringBuilder.append("私钥的 UTF-8 编码    ").append(new String(encodedMethodAndInvoke, StandardCharsets.UTF_8)).append("\n");
                             mStringBuilder.append("私钥的 16 进制  编码    ").append(bytesToHexString(encodedMethodAndInvoke)).append("\n");
                         }
+                        getStackTraceMessage(mStringBuilder);
+
+
                         FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
                     }
 
@@ -482,6 +425,8 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             mStringBuilder.append("IV 的 UTF-8 编码    ").append(new String(getIvFieldAndIvoke, StandardCharsets.UTF_8)).append("\n");
                             mStringBuilder.append("IV 的 16 进制  编码    ").append(bytesToHexString(getIvFieldAndIvoke)).append("\n");
                         }
+
+                        getStackTraceMessage(mStringBuilder);
 
 
                         FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
@@ -529,6 +474,8 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             mStringBuilder.append("IV 的 16 进制  编码    ").append(bytesToHexString(getIvFieldAndIvoke)).append("\n");
                         }
 
+                        getStackTraceMessage(mStringBuilder);
+
                         FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
 
                     }
@@ -570,6 +517,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             mStringBuilder.append("IV 的 UTF-8 编码    ").append(new String(getIvFieldAndIvoke, StandardCharsets.UTF_8)).append("\n");
                             mStringBuilder.append("IV 的 16 进制  编码    ").append(bytesToHexString(getIvFieldAndIvoke)).append("\n");
                         }
+                        getStackTraceMessage(mStringBuilder);
 
                         FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
 
@@ -612,6 +560,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             mStringBuilder.append("IV 的 UTF-8 编码    ").append(new String(getIvFieldAndIvoke, StandardCharsets.UTF_8)).append("\n");
                             mStringBuilder.append("IV 的 16 进制  编码    ").append(bytesToHexString(getIvFieldAndIvoke)).append("\n");
                         }
+                        getStackTraceMessage(mStringBuilder);
 
                         FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
 
@@ -654,6 +603,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             mStringBuilder.append("IV 的 UTF-8 编码    ").append(new String(getIvFieldAndIvoke, StandardCharsets.UTF_8)).append("\n");
                             mStringBuilder.append("IV 的 16 进制  编码    ").append(bytesToHexString(getIvFieldAndIvoke)).append("\n");
                         }
+                        getStackTraceMessage(mStringBuilder);
 
                         FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
 
@@ -666,6 +616,20 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
 
 
+    }
+
+    private void getStackTraceMessage(StringBuilder mStringBuilder) {
+        try {
+            throw new Exception("getStackTraceElementException");
+        } catch (Exception e) {
+            StackTraceElement[] stackTrace = e.getStackTrace();
+            mStringBuilder.append(" --------------------------  >>>> " + "\n");
+            for (StackTraceElement stackTraceElement : stackTrace) {
+                mStringBuilder.append("栈信息      ").append(stackTraceElement.getClassName()).append(".").append(stackTraceElement.getMethodName()).append("\n");
+            }
+            mStringBuilder.append("<<<< --------------------------  " + "\n");
+        }
+        mStringBuilder.append("\n\n\n");
     }
 
     private byte[] getIvFieldAndIvoke(Object IV) {

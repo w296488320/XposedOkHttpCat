@@ -1,3 +1,5 @@
+import java.math.MathContext
+
 apply plugin: 'com.android.application'
 apply plugin: 'stringfog'
 
@@ -32,9 +34,27 @@ android {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            //buildConfigField String, "AppName", getAppName
         }
     }
 
+
+    //release版本输出包名自动追加版本号和版本名称
+    applicationVariants.all {
+        variant ->
+            variant.outputs.all {
+
+                //只处理生产版本
+                if (buildType.name == 'release') {
+
+                    def createTime = new Date().format("YYYY-MM-dd", TimeZone.getTimeZone("GMT+08:00"))
+                    // app包名称
+                    outputFileName "v" + defaultConfig.versionName + "_" + createTime + "_" + buildType.name + ".apk"
+                    //指定release输出到指定文件夹
+                }
+            }
+
+    }
 
     signingConfigs {
         debug {
@@ -72,3 +92,4 @@ dependencies {
     // 这里要和上面选用的加解密算法库一致，用于运行时解密。
     implementation 'com.github.megatronking.stringfog:xor:1.1.0'
 }
+

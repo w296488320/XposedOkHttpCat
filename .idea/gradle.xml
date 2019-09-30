@@ -8,9 +8,9 @@
         <option name="modules">
           <set>
             <option value="$PROJECT_DIR$" />
-            <option value="$PROJECT_DIR$/app" />
             <option value="$PROJECT_DIR$/dexlib2" />
             <option value="$PROJECT_DIR$/encryptstack" />
+            <option value="$PROJECT_DIR$/okHttpCat" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />
