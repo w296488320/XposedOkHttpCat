@@ -51,14 +51,13 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     private final String Base64EncodeToString = "encodeToString";
     private final String Base64Encode = "encode";
     private final String Base64Decode = "decode";
-
     private final String Md5Digest = "digest";
-
-
     private final String DoFinal = "doFinal";
-
-
     private final String Init = "init";
+
+
+
+
 
 
     @Override
@@ -83,10 +82,9 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
      * 字节数组 转 16 进制
      *
      * @param bArr 数据
-     * @return
      */
     private String bytesToHexString(byte[] bArr) {
-        StringBuffer sb = new StringBuffer(bArr.length);
+        StringBuilder sb = new StringBuilder(bArr.length);
         String sTmp;
 
         for (byte b : bArr) {
@@ -132,14 +130,13 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                         super.beforeHookedMethod(param);
-                        StringBuilder mStringBuilder = new StringBuilder(Base64EncodeToString);
                         byte[] bytes = (byte[]) param.args[0];
-                        mStringBuilder.append("方法名字   Base64." + Base64EncodeToString + "\n").
-                                append("时间  " + mSimpleDateFormat.format(new Date()) + "\n").
-                                append(param.thisObject.getClass().getName()).append(".").append(Base64EncodeToString).append("\n").
-                                append(Base64EncodeToString + "参数1 U8编码是   ").append(new String(bytes, StandardCharsets.UTF_8)).append("\n").
-                                append(Base64EncodeToString + "参数1 的 16进制是  ").append(bytesToHexString(bytes));
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                        String mStringBuilder = Base64EncodeToString + "方法名字   Base64." + Base64EncodeToString + "\n" +
+                                "时间  " + mSimpleDateFormat.format(new Date()) + "\n" +
+                                param.thisObject.getClass().getName() + "." + Base64EncodeToString + "\n" +
+                                Base64EncodeToString + "参数1 U8编码是   " + new String(bytes, StandardCharsets.UTF_8) + "\n" +
+                                Base64EncodeToString + "参数1 的 16进制是  " + bytesToHexString(bytes);
+                        FileUtils.SaveString(mOtherContext, mStringBuilder, InvokPackage);
 
                     }
 
@@ -167,14 +164,13 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                         super.beforeHookedMethod(param);
-                        StringBuilder mStringBuilder = new StringBuilder(Base64Encode);
                         byte[] bytes = (byte[]) param.args[0];
-                        mStringBuilder.append("方法名字   Base64." + Base64Encode).append("\n").
-                                append(mSimpleDateFormat.format(new Date())).append("\n").
-                                append(param.thisObject.getClass().getName()).append(".").append(Base64Encode).append("\n").
-                                append("参数1  U8编码 " + new String(bytes, StandardCharsets.UTF_8)).append("\n").
-                                append("参数2  16进制 编码 " + bytesToHexString(bytes)).append("\n");
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                        String mStringBuilder = Base64Encode + "方法名字   Base64." + Base64Encode + "\n" +
+                                mSimpleDateFormat.format(new Date()) + "\n" +
+                                param.thisObject.getClass().getName() + "." + Base64Encode + "\n" +
+                                "参数1  U8编码 " + new String(bytes, StandardCharsets.UTF_8) + "\n" +
+                                "参数2  16进制 编码 " + bytesToHexString(bytes) + "\n";
+                        FileUtils.SaveString(mOtherContext, mStringBuilder, InvokPackage);
 
                     }
 
@@ -204,15 +200,14 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                         super.beforeHookedMethod(param);
-                        StringBuilder mStringBuilder = new StringBuilder(Base64Decode);
 
                         byte[] bytes = (byte[]) param.args[0];
-                        mStringBuilder.append("    方法名字   Base64." + Base64Decode + "   \n").
-                                append(mSimpleDateFormat.format(new Date()) + "\n").
-                                append(param.thisObject.getClass().getName()).append(".").append(Base64Decode).append("\n").
-                                append("参数 1  U8编码 ").append(new String(bytes, StandardCharsets.UTF_8)).append("\n");
 
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                        String mStringBuilder = Base64Decode + "    方法名字   Base64." + Base64Decode + "   \n" +
+                                mSimpleDateFormat.format(new Date()) + "\n" +
+                                param.thisObject.getClass().getName() + "." + Base64Decode + "\n" +
+                                "参数 1  U8编码 " + new String(bytes, StandardCharsets.UTF_8) + "\n";
+                        FileUtils.SaveString(mOtherContext, mStringBuilder, InvokPackage);
 
 
                     }
@@ -246,7 +241,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
                         String bytes = param.args[0].toString();
                         mStringBuilder.append("    方法名字   Base64." + Base64Decode + "   \n").
-                                append(mSimpleDateFormat.format(new Date()) + "\n").
+                                append(mSimpleDateFormat.format(new Date())).append("\n").
                                 append(param.thisObject.getClass().getName()).append(".").append(Base64Decode).append("\n").
                                 append("参数 1   ").append(bytes);
                         FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
@@ -278,14 +273,13 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                         super.beforeHookedMethod(param);
-                        StringBuilder mStringBuilder = new StringBuilder(Md5Digest);
 
                         byte[] bytes = (byte[]) param.args[0];
-                        mStringBuilder.append("    方法名字   MD5加密 " + Md5Digest + "   \n").
-                                append(mSimpleDateFormat.format(new Date()) + "\n").
-                                append(param.thisObject.getClass().getName()).append(".").append(Md5Digest).append("\n").
-                                append("参数 1   U8编码   ").append(new String(bytes, StandardCharsets.UTF_8)).append("\n");
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                        String mStringBuilder = Md5Digest + "    方法名字   MD5加密 " + Md5Digest + "   \n" +
+                                mSimpleDateFormat.format(new Date()) + "\n" +
+                                param.thisObject.getClass().getName() + "." + Md5Digest + "\n" +
+                                "参数 1   U8编码   " + new String(bytes, StandardCharsets.UTF_8) + "\n";
+                        FileUtils.SaveString(mOtherContext, mStringBuilder, InvokPackage);
 
                     }
 
@@ -296,13 +290,13 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
                         mStringBuilder.append("\n");
                         byte[] Result = (byte[]) param.getResult();
-                        String result = "";
+                        StringBuilder result = new StringBuilder();
                         for (byte b : Result) {
                             String temp = Integer.toHexString(b & 0xff);
                             if (temp.length() == 1) {
                                 temp = "0" + temp;
                             }
-                            result += temp;
+                            result.append(temp);
                         }
                         mStringBuilder.append("Md5 返回结果  ").append(result).append("\n");
                         getStackTraceMessage(mStringBuilder);
@@ -322,14 +316,13 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                         super.beforeHookedMethod(param);
                         byte[] bytes = (byte[]) param.args[0];
-                        StringBuilder mStringBuilder = new StringBuilder(DoFinal);
 
-                        mStringBuilder.append("    方法名字   " + DoFinal + "   \n").
-                                append(mSimpleDateFormat.format(new Date()) + "\n").
-                                append(param.thisObject.getClass().getName()).append(".").append(DoFinal).append("\n").
-                                append("参数 1   U8编码 ").append(new String(bytes, StandardCharsets.UTF_8)).append("\n").
-                                append("参数 2   16进制 编码 ").append(bytesToHexString(bytes)).append("\n");
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                        String mStringBuilder = DoFinal + "    方法名字   " + DoFinal + "   \n" +
+                                mSimpleDateFormat.format(new Date()) + "\n" +
+                                param.thisObject.getClass().getName() + "." + DoFinal + "\n" +
+                                "参数 1   U8编码 " + new String(bytes, StandardCharsets.UTF_8) + "\n" +
+                                "参数 2   16进制 编码 " + bytesToHexString(bytes) + "\n";
+                        FileUtils.SaveString(mOtherContext, mStringBuilder, InvokPackage);
 
                     }
 
@@ -370,7 +363,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         String algorithm = getAlgorithm(Key);
 
                         mStringBuilder.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("   加密初始化(ECB 模式)    方法名字   " + Init + "\n").
-                                append(mSimpleDateFormat.format(new Date()) + "\n").
+                                append(mSimpleDateFormat.format(new Date())).append("\n").
                                 append(param.thisObject.getClass().getName()).append(".").append(Init).append("\n");
 
 
@@ -411,7 +404,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
                         //getAlgorithm
                         mStringBuilder.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("  加密初始化(CBC 模式  三个 参数   需要  IV)    方法名字   " + Init + "\n").
-                                append(mSimpleDateFormat.format(new Date()) + "\n").
+                                append(mSimpleDateFormat.format(new Date())).append("\n").
                                 append(param.thisObject.getClass().getName()).append(".").append(Init).append("\n");
 
 
@@ -459,7 +452,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
                         //getAlgorithm
                         mStringBuilder.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("            加密初始化(CBC 模式  三个 参数   需要  IV)    方法名字   " + Init + "\n").
-                                append(mSimpleDateFormat.format(new Date()) + "\n").
+                                append(mSimpleDateFormat.format(new Date())).append("\n").
                                 append(param.thisObject.getClass().getName()).append(".").append(Init).append("\n");
 
 
@@ -502,8 +495,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         Object IV = param.args[2];
 
                         //getAlgorithm
-                        mStringBuilder.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("        加密初始化(CBC 模式  三个 参数   需要  IV)    方法名字   " + Init + "\n").
-                                append(mSimpleDateFormat.format(new Date()) + "\n").
+                        mStringBuilder.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("        加密初始化(CBC 模式  三个 参数   需要  IV)    方法名字   " + Init + "\n").append(mSimpleDateFormat.format(new Date())).append("\n").
                                 append(param.thisObject.getClass().getName()).append(".").append(Init).append("\n");
 
 
@@ -545,8 +537,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         Object IV = param.args[2];
 
                         //getAlgorithm
-                        mStringBuilder.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("  加密初始化(CBC 模式  三个 参数   需要  IV)    方法名字   " + Init + "\n").
-                                append(mSimpleDateFormat.format(new Date()) + "\n").
+                        mStringBuilder.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("  加密初始化(CBC 模式  三个 参数   需要  IV)    方法名字   " + Init + "\n").append(mSimpleDateFormat.format(new Date())).append("\n").
                                 append(param.thisObject.getClass().getName()).append(".").append(Init).append("\n");
 
 
@@ -588,8 +579,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         Object IV = param.args[2];
 
                         //getAlgorithm
-                        mStringBuilder.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("  加密初始化(CBC 模式  三个 参数   需要  IV)    方法名字   " + Init + "\n").
-                                append(mSimpleDateFormat.format(new Date()) + "\n").
+                        mStringBuilder.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("  加密初始化(CBC 模式  三个 参数   需要  IV)    方法名字   " + Init + "\n").append(mSimpleDateFormat.format(new Date())).append("\n").
                                 append(param.thisObject.getClass().getName()).append(".").append(Init).append("\n");
 
 
@@ -611,6 +601,9 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
                 }
         );
+
+
+
 
 
 
@@ -673,7 +666,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
      * 获取 加密方法的 模式 是 AES  还是 RSA
      *
      * @param arg
-     * @return
      */
     private String getAlgorithm(Object arg) {
         try {
@@ -716,7 +708,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
 
     @Override
-    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+    public Object invoke(Object proxy, Method method, Object[] args) {
         return null;
     }
 }
