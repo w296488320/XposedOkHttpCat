@@ -3,6 +3,7 @@ package com.zx.encryptstack.XpHook;
 import android.app.ActivityManager;
 import android.app.Application;
 import android.content.Context;
+import android.support.annotation.NonNull;
 import android.util.Base64;
 
 import com.zx.encryptstack.utils.CLogUtils;
@@ -11,6 +12,7 @@ import com.zx.encryptstack.utils.FileUtils;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.AlgorithmParameters;
 import java.security.Key;
@@ -54,8 +56,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     private final String Md5Digest = "digest";
     private final String DoFinal = "doFinal";
     private final String Init = "init";
-
-
+    private final String getBytes = "getBytes";
 
 
 
@@ -290,14 +291,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
                         mStringBuilder.append("\n");
                         byte[] Result = (byte[]) param.getResult();
-                        StringBuilder result = new StringBuilder();
-                        for (byte b : Result) {
-                            String temp = Integer.toHexString(b & 0xff);
-                            if (temp.length() == 1) {
-                                temp = "0" + temp;
-                            }
-                            result.append(temp);
-                        }
+                        StringBuilder result = getMd5(Result);
                         mStringBuilder.append("Md5 返回结果  ").append(result).append("\n");
                         getStackTraceMessage(mStringBuilder);
 
@@ -602,13 +596,43 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                 }
         );
 
+        //byte[] bytes = "".getBytes();
+        XposedHelpers.findAndHookMethod(String.class, getBytes,
+                Charset.class,
+                new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        super.afterHookedMethod(param);
+                        Charset charset = (Charset) param.args[0];
+                        byte[] result = (byte[]) param.getResult();
+                        String mStringBuilder = getBytes + "    方法名字   " + getBytes + "   \n" +
+                                mSimpleDateFormat.format(new Date()) + "\n" +
+                                "Charset  解码类型  "+charset.toString()+
+                                "原 String 内容     " +  ((String) param.thisObject.toString())+"\n" +
+                                "返回结果   16进制 编码 " + bytesToHexString(result) + "\n"+
+                                "返回结果   UTF-8 编码 " + new String(result, StandardCharsets.UTF_8) + "\n"+
+                                "返回结果   Base64  编码 " + Base64.encodeToString(result,Base64.DEFAULT) + "\n"+
+                                "返回结果   MD5  编码 " + getMd5(result) + "\n";
+
+                        FileUtils.SaveString(mOtherContext, mStringBuilder, InvokPackage);
+                    }
+                }
+        );
 
 
+    }
 
-
-
-
-
+    @NonNull
+    private StringBuilder getMd5(byte[] result2) {
+        StringBuilder result1 = new StringBuilder();
+        for (byte b : result2) {
+            String temp = Integer.toHexString(b & 0xff);
+            if (temp.length() == 1) {
+                temp = "0" + temp;
+            }
+            result1.append(temp);
+        }
+        return result1;
     }
 
     private void getStackTraceMessage(StringBuilder mStringBuilder) {
