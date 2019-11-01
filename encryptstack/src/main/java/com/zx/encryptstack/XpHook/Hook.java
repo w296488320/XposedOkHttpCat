@@ -9,6 +9,8 @@ import android.util.Base64;
 import com.zx.encryptstack.utils.CLogUtils;
 import com.zx.encryptstack.utils.FileUtils;
 
+import org.json.JSONObject;
+
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -54,9 +56,10 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     private final String Base64Encode = "encode";
     private final String Base64Decode = "decode";
     private final String Md5Digest = "digest";
+    private final String Update = "update";
     private final String DoFinal = "doFinal";
     private final String Init = "init";
-    private final String getBytes = "getBytes";
+    //private final String getBytes = "getBytes";
 
 
 
@@ -265,18 +268,22 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         );
 
 
-        //MD5
+        //MD5 和 sha-1
         //byte[] bytes = md5.digest(string.getBytes());
         XposedHelpers.findAndHookMethod(MessageDigest.class, Md5Digest,
                 byte[].class,
                 new XC_MethodHook() {
-
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                         super.beforeHookedMethod(param);
 
                         byte[] bytes = (byte[]) param.args[0];
-                        String mStringBuilder = Md5Digest + "    方法名字   MD5加密 " + Md5Digest + "   \n" +
+
+                        //加密 类型
+                        MessageDigest thisObject = (MessageDigest) param.thisObject;
+                        String algorithm = thisObject.getAlgorithm();
+
+                        String mStringBuilder = Md5Digest + "    名字   "+algorithm+"加密 " + Md5Digest + "   \n" +
                                 mSimpleDateFormat.format(new Date()) + "\n" +
                                 param.thisObject.getClass().getName() + "." + Md5Digest + "\n" +
                                 "参数 1   U8编码   " + new String(bytes, StandardCharsets.UTF_8) + "\n";
@@ -289,16 +296,109 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         super.afterHookedMethod(param);
                         StringBuilder mStringBuilder = new StringBuilder(Md5Digest);
 
+                        MessageDigest msgDitest = (MessageDigest) param.thisObject;
+
+                        String algorithm = msgDitest.getAlgorithm();
                         mStringBuilder.append("\n");
                         byte[] Result = (byte[]) param.getResult();
                         StringBuilder result = getMd5(Result);
-                        mStringBuilder.append("Md5 返回结果  ").append(result).append("\n");
+                        mStringBuilder.append(algorithm).append(" 返回结果  ").append(result).append("\n").
+                                append("MessageDigest   toString 返回结果 ").append(msgDitest.toString()).append("\n");
                         getStackTraceMessage(mStringBuilder);
 
                         FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
                     }
                 }
         );
+
+
+        //MD5 和 sha-1
+        //byte[] bytes = md5.digest();
+        XposedHelpers.findAndHookMethod(MessageDigest.class, Md5Digest,
+                new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        super.beforeHookedMethod(param);
+
+                        //加密 类型
+                        MessageDigest thisObject = (MessageDigest) param.thisObject;
+                        String algorithm = thisObject.getAlgorithm();
+
+                        String mStringBuilder = Md5Digest + "    名字   "+algorithm+"加密 " + Md5Digest + "   \n" +
+                                mSimpleDateFormat.format(new Date()) + "\n" +
+                                param.thisObject.getClass().getName() + "." + Md5Digest + "\n" ;
+                        FileUtils.SaveString(mOtherContext, mStringBuilder, InvokPackage);
+
+
+                    }
+
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        super.afterHookedMethod(param);
+                        StringBuilder mStringBuilder = new StringBuilder(Md5Digest);
+
+                        MessageDigest msgDitest = (MessageDigest) param.thisObject;
+
+                        String algorithm = msgDitest.getAlgorithm();
+                        mStringBuilder.append("\n");
+                        byte[] Result = (byte[]) param.getResult();
+                        StringBuilder result = getMd5(Result);
+                        mStringBuilder.append(algorithm).append(" 返回结果  ").append(result).append("\n").
+                        append("MessageDigest   toString 返回结果 ").append(msgDitest.toString()).append("\n");
+                        getStackTraceMessage(mStringBuilder);
+
+                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                    }
+                }
+        );
+
+
+
+        //MessageDigest msgDitest = MessageDigest.getInstance("SHA-1");
+        //msgDitest.update(content.getBytes());
+        XposedHelpers.findAndHookMethod(MessageDigest.class, Update,
+                byte[].class,
+                new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        super.beforeHookedMethod(param);
+
+                        byte[] bytes = (byte[]) param.args[0];
+                        //加密 类型
+                        MessageDigest thisObject = (MessageDigest) param.thisObject;
+                        String algorithm = thisObject.getAlgorithm();
+
+                        String mStringBuilder = Md5Digest + "    名字   "+algorithm+"加密 " + Update + "   \n" +
+                                mSimpleDateFormat.format(new Date()) + "\n" +
+                                param.thisObject.getClass().getName() + "." + Md5Digest + "\n" +
+                                "参数 1   U8编码   " + new String(bytes, StandardCharsets.UTF_8) + "\n";
+                        FileUtils.SaveString(mOtherContext, mStringBuilder, InvokPackage);
+
+
+                    }
+
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        super.afterHookedMethod(param);
+                        StringBuilder mStringBuilder = new StringBuilder(Md5Digest);
+
+                        MessageDigest msgDitest = (MessageDigest) param.thisObject;
+
+                        String algorithm = msgDitest.getAlgorithm();
+                        mStringBuilder.append("\n");
+                        byte[] Result = (byte[]) param.getResult();
+                        StringBuilder result = getMd5(Result);
+                        mStringBuilder.append(algorithm).append(" 返回结果  ").append(result).append("\n").
+                                append("MessageDigest   toString 返回结果 ").append(msgDitest.toString()).append("\n");
+                        getStackTraceMessage(mStringBuilder);
+
+                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                    }
+                }
+        );
+
+
+
 
         // 这个方法AES或者 RSA都有可能用
         // cipher.doFinal(content.getBytes("UTF-8"));
@@ -338,6 +438,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                     }
                 }
         );
+
 
 
         //cipher.init(Cipher.ENCRYPT_MODE, skeySpec);
@@ -596,28 +697,45 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                 }
         );
 
-        //byte[] bytes = "".getBytes();
-        XposedHelpers.findAndHookMethod(String.class, getBytes,
-                Charset.class,
-                new XC_MethodHook() {
-                    @Override
-                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                        super.afterHookedMethod(param);
-                        Charset charset = (Charset) param.args[0];
-                        byte[] result = (byte[]) param.getResult();
-                        String mStringBuilder = getBytes + "    方法名字   " + getBytes + "   \n" +
-                                mSimpleDateFormat.format(new Date()) + "\n" +
-                                "Charset  解码类型  "+charset.toString()+
-                                "原 String 内容     " +  ((String) param.thisObject.toString())+"\n" +
-                                "返回结果   16进制 编码 " + bytesToHexString(result) + "\n"+
-                                "返回结果   UTF-8 编码 " + new String(result, StandardCharsets.UTF_8) + "\n"+
-                                "返回结果   Base64  编码 " + Base64.encodeToString(result,Base64.DEFAULT) + "\n"+
-                                "返回结果   MD5  编码 " + getMd5(result) + "\n";
+        //new JsonObject();
+        XposedHelpers.findAndHookConstructor(JSONObject.class, String.class, new XC_MethodHook() {
+            @Override
+            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                super.afterHookedMethod(param);
+                StringBuilder mStringBuilder = new StringBuilder("JsonObject 构造方法 "+"\n");
+                String json = ((JSONObject) param.thisObject).toString();
+                mStringBuilder.append("Json 内容 :  "+json+"\n");
+                getStackTraceMessage(mStringBuilder);
 
-                        FileUtils.SaveString(mOtherContext, mStringBuilder, InvokPackage);
-                    }
-                }
-        );
+                FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+
+            }
+        });
+
+
+        //byte[] bytes = "".getBytes();
+//        XposedHelpers.findAndHookMethod(String.class, getBytes,
+//                Charset.class,
+//                new XC_MethodHook() {
+//                    @Override
+//                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+//                        super.afterHookedMethod(param);
+//                        Charset charset = (Charset) param.args[0];
+//                        byte[] result = (byte[]) param.getResult();
+//                        String mStringBuilder = getBytes + "    方法名字   " + getBytes + "   \n" +
+//                                mSimpleDateFormat.format(new Date()) + "\n" +
+//                                "Charset  解码类型  "+charset.toString()+
+//                                "原 String 内容     " + param.thisObject.toString() +"\n" +
+//                                "返回结果   16进制 编码 " + bytesToHexString(result) + "\n"+
+//                                "返回结果   UTF-8 编码 " + new String(result, StandardCharsets.UTF_8) + "\n"+
+//                                "返回结果   Base64  编码 " + Base64.encodeToString(result,Base64.DEFAULT) + "\n"+
+//                                "返回结果   MD5  编码 " + getMd5(result) + "\n";
+//
+//                        FileUtils.SaveString(mOtherContext, mStringBuilder, InvokPackage);
+//                    }
+//                }
+//        );
+
 
 
     }
@@ -688,8 +806,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
     /**
      * 获取 加密方法的 模式 是 AES  还是 RSA
-     *
-     * @param arg
      */
     private String getAlgorithm(Object arg) {
         try {
