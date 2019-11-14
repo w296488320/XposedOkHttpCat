@@ -8,6 +8,7 @@ import android.support.annotation.Nullable;
 import android.text.TextUtils;
 
 import java.io.File;
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -38,7 +39,9 @@ import q296488320.xposedinto.utils.CLogUtils;
 import q296488320.xposedinto.utils.FileUtils;
 import q296488320.xposedinto.utils.HookSpUtil;
 import q296488320.xposedinto.utils.SpUtil;
+import dalvik.system.*;
 
+import static android.icu.lang.UCharacter.GraphemeClusterBreak.T;
 //import org.jf.dexlib2.DexFileFactory;
 //import org.jf.dexlib2.Opcodes;
 //import org.jf.dexlib2.dexbacked.DexBackedClassDef;
@@ -999,12 +1002,17 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
     }
 
+
+
+
     private boolean AddElements() {
         //自己的 classloader 里面的 element数组
         Object[] myDexClassLoaderElements = getMyDexClassLoaderElements();
         if(myDexClassLoaderElements==null){
             CLogUtils.e("AddElements  myDexClassLoaderElements null");
             return false;
+        }else {
+            CLogUtils.e("AddElements  成功 拿到 myDexClassLoaderElements 自己的Elements 长度是   "+myDexClassLoaderElements.length);
         }
         //系统的  classloader 里面的 element数组
         Object[] classLoaderElements = getClassLoaderElements();
@@ -1012,14 +1020,25 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         if(classLoaderElements==null){
             CLogUtils.e("AddElements  classLoaderElements null");
             return false;
+        }else {
+            CLogUtils.e("AddElements  成功 拿到 classLoaderElements 系统的Elements 长度是   "+classLoaderElements.length);
         }
 
-        Object[] dexElementsResut = concat(myDexClassLoaderElements, classLoaderElements);
-        if(dexElementsResut==null){
+        //DexElements合并
+        Object[] combined = (Object[]) Array.newInstance(classLoaderElements.getClass().getComponentType(),
+                classLoaderElements.length + myDexClassLoaderElements.length);
+
+        System.arraycopy(classLoaderElements, 0, combined, 0, classLoaderElements.length);
+        System.arraycopy(myDexClassLoaderElements, 0, combined, classLoaderElements.length, myDexClassLoaderElements.length);
+
+
+        //Object[] dexElementsResut = concat(myDexClassLoaderElements, classLoaderElements);
+
+        if((classLoaderElements.length+myDexClassLoaderElements.length)!=combined.length){
             CLogUtils.e("合并 elements数组 失败  null");
         }
         //合并成功 重新 加载
-        return SetDexElements(dexElementsResut,myDexClassLoaderElements.length+classLoaderElements.length);
+        return SetDexElements(combined,myDexClassLoaderElements.length+classLoaderElements.length);
     }
 
     /**
@@ -1118,17 +1137,17 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
      * @param b 新数组
      * @return 合并以后的数组
      */
-    static Object[] concat(Object[] a, Object[] b) {
-
-        Object[] c= new Object[a.length+b.length];
-
-        System.arraycopy(a, 0, c, 0, a.length);
-
-        System.arraycopy(b, 0, c, a.length, b.length);
-
-        return c;
-
-    }
+//    static Object[] concat(Object[] a, Object[] b) {
+//
+//        //Object[] c= new Object[a.length+b.length];
+//
+//
+//        System.arraycopy(original, 0, combined, 0, original.length);
+//        System.arraycopy(extraElements, 0, combined, original.length, extraElements.length);
+//
+//        return c;
+//
+//    }
 
 
 
