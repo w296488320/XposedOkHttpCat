@@ -24,10 +24,10 @@ public class App extends Application{
     @Override
     public void onCreate() {
         super.onCreate();
-        Md5Check();
+
         mContext=getApplicationContext();
         initBugly();
-
+        Md5Check();
     }
 
     private void initBugly() {

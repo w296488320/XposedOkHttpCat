@@ -17,6 +17,7 @@ import java.lang.reflect.Proxy;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
@@ -534,53 +535,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     }
 
 
-    private synchronized void getAllClassName() {
 
-        //保证每次初始化 之前 保证干净
-        AllClassNameList.clear();
-        CLogUtils.e("开始 获取全部的类名  ");
-        try {
-            //系统的 classloader是 Pathclassloader需要 拿到他的 父类 BaseClassloader才有 pathList
-            if (mLoader == null) {
-                return;
-            }
-
-            Field pathListField = mLoader.getClass().getSuperclass().getDeclaredField("pathList");
-            if (pathListField != null) {
-                pathListField.setAccessible(true);
-                Object dexPathList = pathListField.get(mLoader);
-                Field dexElementsField = dexPathList.getClass().getDeclaredField("dexElements");
-                if (dexElementsField != null) {
-                    dexElementsField.setAccessible(true);
-                    Object[] dexElements = (Object[]) dexElementsField.get(dexPathList);
-                    for (Object dexElement : dexElements) {
-                        Field dexFileField = dexElement.getClass().getDeclaredField("dexFile");
-                        if (dexFileField != null) {
-                            dexFileField.setAccessible(true);
-                            DexFile dexFile = (DexFile) dexFileField.get(dexElement);
-                            getDexFileClassName(dexFile, AllClassNameList);
-                        } else {
-                            CLogUtils.e("获取 dexFileField Null ");
-                        }
-                    }
-                } else {
-                    CLogUtils.e("获取 dexElements Null ");
-                }
-            } else {
-                CLogUtils.e("获取 pathListField Null ");
-            }
-            //获取 app包里的
-            //DexFile df = new DexFile(mOtherContext.getPackageCodePath());
-        } catch (NoSuchFieldException e) {
-            CLogUtils.e("getAllClassName   NoSuchFieldException   " + e.getMessage());
-
-            e.printStackTrace();
-        } catch (IllegalAccessException e) {
-            CLogUtils.e("getAllClassName   IllegalAccessException   " + e.getMessage());
-
-            e.printStackTrace();
-        }
-    }
 
     private void getDexFileClassName(DexFile dexFile, List<String> classNameList) {
         //获取df中的元素  这里包含了所有可执行的类名 该类名包含了包名+类名的方式
@@ -622,10 +577,12 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             //interceptors
             List interceptors = (List) XposedHelpers.getObjectField(param.thisObject, "interceptors");
             CLogUtils.e("拿到了 拦截器  集合 ");
-            Object httpLoggingInterceptor = getHttpLoggingInterceptor();
-            interceptors.add(httpLoggingInterceptor);
+            if(interceptors!=null) {
+                Object httpLoggingInterceptor = getHttpLoggingInterceptor();
+                interceptors.add(httpLoggingInterceptor);
+            }
         } catch (Exception e) {
-            CLogUtils.e("Hook到 build但出现 异常 " + e.getMessage());
+            CLogUtils.e("Hook到 build但出现 异常 111111     " + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -657,7 +614,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             }
 
         } catch (Exception e) {
-            CLogUtils.e("Hook到 build但出现 异常 " + e.getMessage());
+            CLogUtils.e("Hook到 build但出现 异常 22222" + e.getMessage());
             e.printStackTrace();
         }
     }
@@ -752,7 +709,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             }
             if (mHttpLoggingInterceptor != null && mHttpLoggingInterceptorLoggerClass != null) {
                 CLogUtils.e("拿到了 拦截器 log");
-                return InitInterceptor(false);
+                return InitInterceptor();
             }
         }
         catch (InstantiationException e) {
@@ -850,6 +807,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
     /**
      * Hook 底层的方法
+     * 这个是不管 什么 框架请求都会走的 函数
      */
     private void HookGetOutPushStream() {
 
@@ -959,25 +917,25 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     }
 
 
-    private Object InitInterceptor(boolean isDexLoader) throws
+    private Object InitInterceptor() throws
             InstantiationException, IllegalAccessException, InvocationTargetException, NoSuchMethodException, ClassNotFoundException {
         CLogUtils.e("拿到  HttpLoggingInterceptor 和 logger ");
         //通过 动态代理 拿到 这个 接口 实体类
         Object logger;
-        if (isDexLoader) {
-            logger = Proxy.newProxyInstance(mDexClassLoader, new Class[]{mHttpLoggingInterceptorLoggerClass}, Hook.this);
-        } else {
+//        if (isDexLoader) {
+//            logger = Proxy.newProxyInstance(mDexClassLoader, new Class[]{mHttpLoggingInterceptorLoggerClass}, Hook.this);
+//        } else {
             logger = Proxy.newProxyInstance(mLoader, new Class[]{mHttpLoggingInterceptorLoggerClass}, Hook.this);
-        }
+//        }
         CLogUtils.e("拿到  动态代理的 class");
         Object loggingInterceptor = mHttpLoggingInterceptor.getConstructor(mHttpLoggingInterceptorLoggerClass).newInstance(logger);
         CLogUtils.e("拿到  拦截器的实体类  ");
         Object level;
-        if (isDexLoader) {
-            level = mDexClassLoader.loadClass("okhttp3.logging.HttpLoggingInterceptor$Level").getEnumConstants()[3];
-        } else {
+//        if (isDexLoader) {
+//            level = mDexClassLoader.loadClass("okhttp3.logging.HttpLoggingInterceptor$Level").getEnumConstants()[3];
+//        } else {
             level = mLoader.loadClass("okhttp3.logging.HttpLoggingInterceptor$Level").getEnumConstants()[3];
-        }
+//        }
         CLogUtils.e("拿到  Level 枚举   ");
         //调用 函数
         //setLevel
@@ -1002,13 +960,25 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         // 第四个参数：是上一级的类加载器
         mDexClassLoader = new DexClassLoader(INTERCEPTORPATH, dexOutputDir.getAbsolutePath(), null, mLoader);
         try {
-            mHttpLoggingInterceptor = mDexClassLoader.loadClass("okhttp3.logging.HttpLoggingInterceptor");
-            mHttpLoggingInterceptorLoggerClass = mDexClassLoader.loadClass("okhttp3.logging.HttpLoggingInterceptor$Logger");
-            if (mHttpLoggingInterceptorLoggerClass != null && mHttpLoggingInterceptor != null) {
-                CLogUtils.e("动态 加载 classloader 成功 ");
 
-                return InitInterceptor(true);
+            if (AddElements()){
+
+                //mHttpLoggingInterceptor = mDexClassLoader.loadClass("okhttp3.logging.HttpLoggingInterceptor");
+                //mHttpLoggingInterceptorLoggerClass = mDexClassLoader.loadClass("okhttp3.logging.HttpLoggingInterceptor$Logger");
+
+                mHttpLoggingInterceptor = mLoader.loadClass("okhttp3.logging.HttpLoggingInterceptor");
+                mHttpLoggingInterceptorLoggerClass = mLoader.loadClass("okhttp3.logging.HttpLoggingInterceptor$Logger");
+                if (mHttpLoggingInterceptorLoggerClass != null && mHttpLoggingInterceptor != null) {
+                    CLogUtils.e("动态 加载 classloader 成功 ");
+
+                    return InitInterceptor();
+                }else {
+                    return null;
+                }
             }
+           return null;
+
+
         } catch (ClassNotFoundException e) {
             CLogUtils.e("动态 加载异常  ClassNotFoundException" + e.getMessage());
             e.printStackTrace();
@@ -1029,5 +999,206 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
     }
 
+    private boolean AddElements() {
+        //自己的 classloader 里面的 element数组
+        Object[] myDexClassLoaderElements = getMyDexClassLoaderElements();
+        if(myDexClassLoaderElements==null){
+            CLogUtils.e("AddElements  myDexClassLoaderElements null");
+            return false;
+        }
+        //系统的  classloader 里面的 element数组
+        Object[] classLoaderElements = getClassLoaderElements();
+        //将数组合并
+        if(classLoaderElements==null){
+            CLogUtils.e("AddElements  classLoaderElements null");
+            return false;
+        }
+
+        Object[] dexElementsResut = concat(myDexClassLoaderElements, classLoaderElements);
+        if(dexElementsResut==null){
+            CLogUtils.e("合并 elements数组 失败  null");
+        }
+        //合并成功 重新 加载
+        return SetDexElements(dexElementsResut,myDexClassLoaderElements.length+classLoaderElements.length);
+    }
+
+    /**
+     * 将 Elements 数组 set回原来的 classloader里面
+     * @param dexElementsResut
+     */
+    private boolean SetDexElements(Object[] dexElementsResut,int conunt) {
+        try {
+            Field pathListField = mLoader.getClass().getSuperclass().getDeclaredField("pathList");
+            if (pathListField != null) {
+                pathListField.setAccessible(true);
+                Object dexPathList = pathListField.get(mLoader);
+                Field dexElementsField = dexPathList.getClass().getDeclaredField("dexElements");
+                if (dexElementsField != null) {
+                    dexElementsField.setAccessible(true);
+                    //先 重新设置一次
+                    dexElementsField.set(dexPathList,dexElementsResut);
+                    //重新 get 用
+                    Object[] dexElements = (Object[]) dexElementsField.get(dexPathList);
+                    if(dexElements.length==conunt&& Arrays.hashCode(dexElements) == Arrays.hashCode(dexElementsResut)){
+                        return true;
+                    }else {
+                        CLogUtils.e("合成   长度  "+dexElements.length+"传入 数组 长度   "+conunt);
+
+                        CLogUtils.e("   dexElements hashCode "+Arrays.hashCode(dexElements)+"  "+Arrays.hashCode(dexElementsResut));
+
+                        return false;
+                    }
+                }else {
+                    CLogUtils.e("SetDexElements  获取 dexElements == null");
+                }
+            }else {
+                CLogUtils.e("SetDexElements  获取 pathList == null");
+            }
+        } catch (NoSuchFieldException e) {
+            CLogUtils.e("SetDexElements  NoSuchFieldException   "+e.getMessage());
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            CLogUtils.e("SetDexElements  IllegalAccessException   "+e.getMessage());
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    private synchronized void getAllClassName() {
+
+        //保证每次初始化 之前 保证干净
+        AllClassNameList.clear();
+        CLogUtils.e("开始 获取全部的类名  ");
+        try {
+            //系统的 classloader是 Pathclassloader需要 拿到他的 父类 BaseClassloader才有 pathList
+            if (mLoader == null) {
+                return;
+            }
+
+            Field pathListField = mLoader.getClass().getSuperclass().getDeclaredField("pathList");
+            if (pathListField != null) {
+                pathListField.setAccessible(true);
+                Object dexPathList = pathListField.get(mLoader);
+                Field dexElementsField = dexPathList.getClass().getDeclaredField("dexElements");
+                if (dexElementsField != null) {
+                    dexElementsField.setAccessible(true);
+                    Object[] dexElements = (Object[]) dexElementsField.get(dexPathList);
+                    for (Object dexElement : dexElements) {
+                        Field dexFileField = dexElement.getClass().getDeclaredField("dexFile");
+                        if (dexFileField != null) {
+                            dexFileField.setAccessible(true);
+                            DexFile dexFile = (DexFile) dexFileField.get(dexElement);
+                            getDexFileClassName(dexFile, AllClassNameList);
+                        } else {
+                            CLogUtils.e("获取 dexFileField Null ");
+                        }
+                    }
+                } else {
+                    CLogUtils.e("获取 dexElements Null ");
+                }
+            } else {
+                CLogUtils.e("获取 pathListField Null ");
+            }
+            //获取 app包里的
+            //DexFile df = new DexFile(mOtherContext.getPackageCodePath());
+        } catch (NoSuchFieldException e) {
+            CLogUtils.e("getAllClassName   NoSuchFieldException   " + e.getMessage());
+
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            CLogUtils.e("getAllClassName   IllegalAccessException   " + e.getMessage());
+
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * 数组合并
+     * @param a 原数组
+     * @param b 新数组
+     * @return 合并以后的数组
+     */
+    static Object[] concat(Object[] a, Object[] b) {
+
+        Object[] c= new Object[a.length+b.length];
+
+        System.arraycopy(a, 0, c, 0, a.length);
+
+        System.arraycopy(b, 0, c, a.length, b.length);
+
+        return c;
+
+    }
+
+
+
+    /**
+     * 将自己 创建的 classloader 里面的 内容添加到 原来的 classloader里面
+     */
+    private Object[] getMyDexClassLoaderElements()  {
+        try {
+            Field pathListField = mDexClassLoader.getClass().getSuperclass().getDeclaredField("pathList");
+            if (pathListField != null) {
+                pathListField.setAccessible(true);
+                Object dexPathList = pathListField.get(mDexClassLoader);
+                Field dexElementsField = dexPathList.getClass().getDeclaredField("dexElements");
+                if (dexElementsField != null) {
+                    dexElementsField.setAccessible(true);
+                    Object[] dexElements = (Object[]) dexElementsField.get(dexPathList);
+                    if(dexElements!=null){
+                        return dexElements;
+                    }else {
+                        CLogUtils.e("AddElements  获取 dexElements == null");
+                    }
+                    //ArrayUtils.addAll(first, second);
+                }else {
+                    CLogUtils.e("AddElements  获取 dexElements == null");
+                }
+            }else {
+                CLogUtils.e("AddElements  获取 pathList == null");
+            }
+        } catch (NoSuchFieldException e) {
+            CLogUtils.e("AddElements  NoSuchFieldException   "+e.getMessage());
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            CLogUtils.e("AddElements  IllegalAccessException   "+e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
+    }
+    /**
+     * 获取系统的 classaLoder
+     */
+    private Object[] getClassLoaderElements()  {
+        try {
+            Field pathListField = mLoader.getClass().getSuperclass().getDeclaredField("pathList");
+            if (pathListField != null) {
+                pathListField.setAccessible(true);
+                Object dexPathList = pathListField.get(mLoader);
+                Field dexElementsField = dexPathList.getClass().getDeclaredField("dexElements");
+                if (dexElementsField != null) {
+                    dexElementsField.setAccessible(true);
+                    Object[] dexElements = (Object[]) dexElementsField.get(dexPathList);
+                    if(dexElements!=null){
+                        return dexElements;
+                    }else {
+                        CLogUtils.e("AddElements  获取 dexElements == null");
+                    }
+                    //ArrayUtils.addAll(first, second);
+                }else {
+                    CLogUtils.e("AddElements  获取 dexElements == null");
+                }
+            }else {
+                CLogUtils.e("AddElements  获取 pathList == null");
+            }
+        } catch (NoSuchFieldException e) {
+            CLogUtils.e("AddElements  NoSuchFieldException   "+e.getMessage());
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            CLogUtils.e("AddElements  IllegalAccessException   "+e.getMessage());
+            e.printStackTrace();
+        }
+        return null;
+    }
 
 }
