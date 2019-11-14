@@ -1003,8 +1003,9 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     }
 
 
-
-
+    /**
+     * @return Dex 是否合并 成功
+     */
     private boolean AddElements() {
         //自己的 classloader 里面的 element数组
         Object[] myDexClassLoaderElements = getMyDexClassLoaderElements();
