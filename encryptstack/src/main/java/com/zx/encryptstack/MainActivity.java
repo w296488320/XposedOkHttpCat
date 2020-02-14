@@ -20,7 +20,7 @@ import com.zx.encryptstack.utils.PermissionUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.Scanner;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -48,7 +48,6 @@ public class MainActivity extends AppCompatActivity {
         initData();
         initView();
         PermissionUtils.initPermission(this, permissionList);
-
         //test();
     }
 

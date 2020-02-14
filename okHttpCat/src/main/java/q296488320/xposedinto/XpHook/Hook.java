@@ -146,7 +146,8 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
      */
     private synchronized void HookAttach() {
 
-        XposedHelpers.findAndHookMethod(Application.class, "attach",
+        XposedHelpers.findAndHookMethod(Application.class,
+                "attach",
                 Context.class,
                 new XC_MethodHook() {
                     @Override
@@ -842,7 +843,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                     TraceString.append(" --------------------------  >>>> " + "\n");
                                     for (StackTraceElement stackTraceElement : stackTrace) {
                                         //FileUtils.SaveString(  );
-                                        TraceString.append("   栈信息      ").append(stackTraceElement.getClassName()).append(".").append(stackTraceElement.getMethodName()).append("\n");
+                                        TraceString.append("   栈信息      ").append(stackTraceElement.getClassName()).append(".").append(stackTraceElement.getMethodName()).append("行数  ").append(stackTraceElement.getLineNumber()).append("\n");
                                     }
                                     TraceString.append("<<<< --------------------------  " + "\n");
                                 }

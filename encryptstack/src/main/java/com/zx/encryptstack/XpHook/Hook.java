@@ -64,8 +64,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     //private final String getBytes = "getBytes";
 
 
-
-
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
         try {
@@ -128,598 +126,662 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
 
     private void HookEncrypMethod() {
-        //String string = Base64.encodeToString();
-        XposedHelpers.findAndHookMethod(Base64.class, Base64EncodeToString,
-                byte[].class,
-                int.class,
-                new XC_MethodHook() {
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        super.beforeHookedMethod(param);
-                        byte[] bytes = (byte[]) param.args[0];
-                        String mStringBuilder = Base64EncodeToString + "方法名字   Base64." + Base64EncodeToString + "\n" +
-                                "时间  " + mSimpleDateFormat.format(new Date()) + "\n" +
-                                param.thisObject.getClass().getName() + "." + Base64EncodeToString + "\n" +
-                                Base64EncodeToString + "参数1 U8编码是   " + new String(bytes, StandardCharsets.UTF_8) + "\n" +
-                                Base64EncodeToString + "参数1 的 16进制是  " + bytesToHexString(bytes);
-                        FileUtils.SaveString(mOtherContext, mStringBuilder, InvokPackage);
 
+
+        try {
+            //String string = Base64.encodeToString(byte[],int);
+            XposedHelpers.findAndHookMethod(Base64.class, Base64EncodeToString,
+                    byte[].class,
+                    int.class,
+                    new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            super.beforeHookedMethod(param);
+                            byte[] bytes = (byte[]) param.args[0];
+                            StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                            stringBuffer.append(Base64EncodeToString + "方法名字   Base64." + Base64EncodeToString + "\n");
+                            stringBuffer.append("时间  ").append(mSimpleDateFormat.format(new Date())).append("\n");
+                            if( param.thisObject!=null){
+                                stringBuffer.append(param.thisObject!=null?param.thisObject.getClass().getName():"").append(Base64EncodeToString).append("\n");
+                            }
+                            stringBuffer.append(Base64EncodeToString + "参数1 U8编码是   ").append(new String(bytes, StandardCharsets.UTF_8)).append("\n");
+                            stringBuffer.append(Base64EncodeToString + "参数1 的 16进制是  ").append(bytesToHexString(bytes));
+
+
+                            FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
+
+                        }
+
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                            super.afterHookedMethod(param);
+
+                            StringBuilder mStringBuilder = new StringBuilder(Base64EncodeToString);
+                            mStringBuilder.append("\n");
+                            String Result = param.getResult().toString();
+                            mStringBuilder.append(Base64EncodeToString + "返回结果   ").append(Result).append("\n").
+                            append("Base64.encodeToString(byte[],int)  返回结果 参数1 U8编码是 ").append(new String((byte[]) param.args[0], StandardCharsets.UTF_8)).append("\n").
+                            append("Base64.encodeToString(byte[],int)  返回结果 参数1 16进制编码是 ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
+
+                            getStackTraceMessage(mStringBuilder);
+                            mStringBuilder.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
+                            FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                        }
                     }
+            );
 
-                    @Override
-                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                        super.afterHookedMethod(param);
+            //byte[] encode = Base64.encode();
+            XposedHelpers.findAndHookMethod(Base64.class, Base64Encode,
+                    byte[].class,
+                    int.class,
+                    new XC_MethodHook() {
 
-                        StringBuilder mStringBuilder = new StringBuilder(Base64EncodeToString);
-                        mStringBuilder.append("\n");
-                        String Result = param.getResult().toString();
-                        mStringBuilder.append(Base64EncodeToString + "返回结果   ").append(Result).append("\n");
-                        getStackTraceMessage(mStringBuilder);
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            super.beforeHookedMethod(param);
+                            byte[] bytes = (byte[]) param.args[0];
+                            StringBuffer stringBuffer = new StringBuffer(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
 
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                            String mStringBuilder = Base64Encode + "方法名字   Base64." + Base64Encode + "\n" +
+                                    mSimpleDateFormat.format(new Date()) + "\n" +
+                                    param.thisObject!=null?param.thisObject.getClass().getName():"" + "." + Base64Encode + "\n" +
+                                    "参数1  U8编码 " + new String(bytes, StandardCharsets.UTF_8) + "\n" +
+                                    "参数2  16进制 编码 " + bytesToHexString(bytes) + "\n";
+
+                            stringBuffer.append(mStringBuilder);
+
+                            FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
+
+                        }
+
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                            super.afterHookedMethod(param);
+                            StringBuilder mStringBuilder = new StringBuilder(Base64Encode);
+                            mStringBuilder.append("\n");
+                            byte[] Result = (byte[]) param.getResult();
+
+                            mStringBuilder.append(Base64Encode + "返回结果   U8编码 ").append(new String(Result, StandardCharsets.UTF_8)).append("\n");
+                            mStringBuilder.append(Base64Encode + "返回结果   16进制 编码 ").append(bytesToHexString(Result)).append("\n");
+
+                            getStackTraceMessage(mStringBuilder);
+                            mStringBuilder.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
+
+                            FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                        }
                     }
-                }
-        );
+            );
 
-        //byte[] encode = Base64.encode();
-        XposedHelpers.findAndHookMethod(Base64.class, Base64Encode,
-                byte[].class,
-                int.class,
-                new XC_MethodHook() {
+            //byte[] decode = Base64.decode(byte[],int);
+            XposedHelpers.findAndHookMethod(Base64.class, Base64Decode,
+                    byte[].class,
+                    int.class,
+                    new XC_MethodHook() {
 
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        super.beforeHookedMethod(param);
-                        byte[] bytes = (byte[]) param.args[0];
-                        String mStringBuilder = Base64Encode + "方法名字   Base64." + Base64Encode + "\n" +
-                                mSimpleDateFormat.format(new Date()) + "\n" +
-                                param.thisObject.getClass().getName() + "." + Base64Encode + "\n" +
-                                "参数1  U8编码 " + new String(bytes, StandardCharsets.UTF_8) + "\n" +
-                                "参数2  16进制 编码 " + bytesToHexString(bytes) + "\n";
-                        FileUtils.SaveString(mOtherContext, mStringBuilder, InvokPackage);
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            super.beforeHookedMethod(param);
 
+                            byte[] bytes = (byte[]) param.args[0];
+                            StringBuffer stringBuffer = new StringBuffer(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+
+                            String mStringBuilder = Base64Decode + "    方法名字   Base64." + Base64Decode + "   \n" +
+                                    mSimpleDateFormat.format(new Date()) + "\n"
+                                    +param.thisObject!=null? param.thisObject.getClass().getName():""+ "." + Base64Decode + "\n" +
+                                    "参数 1  U8编码 " + new String(bytes, StandardCharsets.UTF_8) + "\n";
+                            stringBuffer.append(mStringBuilder);
+                            FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
+
+
+                        }
+
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                            super.afterHookedMethod(param);
+                            StringBuilder mStringBuilder = new StringBuilder("Base64." + Base64Decode);
+
+                            mStringBuilder.append("\n");
+
+                            byte[] Result = (byte[]) param.getResult();
+                            mStringBuilder.append("返回结果  U8编码 ").append(new String(Result, StandardCharsets.UTF_8)).append("\n").
+                                    append("加密之前的 内容 Base64.decode(byte[],int); 参数1  U8编码内容  ").
+                                    append(new String((byte[]) param.args[0], StandardCharsets.UTF_8)).append("\n");
+
+
+                            getStackTraceMessage(mStringBuilder);
+                            mStringBuilder.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
+
+                            FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                        }
                     }
-
-                    @Override
-                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                        super.afterHookedMethod(param);
-                        StringBuilder mStringBuilder = new StringBuilder(Base64Encode);
-                        mStringBuilder.append("\n");
-                        byte[] Result = (byte[]) param.getResult();
-
-                        mStringBuilder.append(Base64Encode + "返回结果   U8编码 ").append(new String(Result, StandardCharsets.UTF_8)).append("\n");
-                        mStringBuilder.append(Base64Encode + "返回结果   16进制 编码 ").append(bytesToHexString(Result)).append("\n");
-
-                        getStackTraceMessage(mStringBuilder);
-
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
-                    }
-                }
-        );
-
-        //byte[] decode = Base64.decode(byte[],int);
-        XposedHelpers.findAndHookMethod(Base64.class, Base64Decode,
-                byte[].class,
-                int.class,
-                new XC_MethodHook() {
-
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        super.beforeHookedMethod(param);
-
-                        byte[] bytes = (byte[]) param.args[0];
-
-                        String mStringBuilder = Base64Decode + "    方法名字   Base64." + Base64Decode + "   \n" +
-                                mSimpleDateFormat.format(new Date()) + "\n" +
-                                param.thisObject.getClass().getName() + "." + Base64Decode + "\n" +
-                                "参数 1  U8编码 " + new String(bytes, StandardCharsets.UTF_8) + "\n";
-                        FileUtils.SaveString(mOtherContext, mStringBuilder, InvokPackage);
-
-
-                    }
-
-                    @Override
-                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                        super.afterHookedMethod(param);
-                        StringBuilder mStringBuilder = new StringBuilder(Base64Decode);
-
-                        mStringBuilder.append("\n");
-
-                        byte[] Result = (byte[]) param.getResult();
-                        mStringBuilder.append("返回结果  U8编码 ").append(new String(Result, StandardCharsets.UTF_8)).append("\n");
-                        getStackTraceMessage(mStringBuilder);
-
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
-                    }
-                }
-        );
+            );
 
 //        byte[] decode = Base64.decode(String,int);
-        XposedHelpers.findAndHookMethod(Base64.class, Base64Decode,
-                String.class,
-                int.class,
-                new XC_MethodHook() {
-
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        super.beforeHookedMethod(param);
-                        StringBuilder mStringBuilder = new StringBuilder(Base64Decode);
-
-                        String bytes = param.args[0].toString();
-                        mStringBuilder.append("    方法名字   Base64." + Base64Decode + "   \n").
-                                append(mSimpleDateFormat.format(new Date())).append("\n").
-                                append(param.thisObject.getClass().getName()).append(".").append(Base64Decode).append("\n").
-                                append("参数 1   ").append(bytes);
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
-                    }
-
-                    @Override
-                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                        super.afterHookedMethod(param);
-                        StringBuilder mStringBuilder = new StringBuilder(Base64Decode);
-
-                        mStringBuilder.append("\n");
-                        byte[] Result = (byte[]) param.getResult();
-                        mStringBuilder.append("返回结果  U8编码 ").append(new String(Result, StandardCharsets.UTF_8)).append("\n");
-                        mStringBuilder.append("返回结果  16进制 编码 ").append(bytesToHexString(Result)).append("\n");
-                        getStackTraceMessage(mStringBuilder);
-
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
-                    }
-                }
-        );
-
-
-        //MD5 和 sha-1
-        //byte[] bytes = md5.digest(string.getBytes());
-        XposedHelpers.findAndHookMethod(MessageDigest.class, Md5Digest,
-                byte[].class,
-                new XC_MethodHook() {
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        super.beforeHookedMethod(param);
-
-                        byte[] bytes = (byte[]) param.args[0];
-
-                        //加密 类型
-                        MessageDigest thisObject = (MessageDigest) param.thisObject;
-                        String algorithm = thisObject.getAlgorithm();
-
-                        String mStringBuilder = Md5Digest + "    名字   "+algorithm+"加密 " + Md5Digest + "   \n" +
-                                mSimpleDateFormat.format(new Date()) + "\n" +
-                                param.thisObject.getClass().getName() + "." + Md5Digest + "\n" +
-                                "参数 1   U8编码   " + new String(bytes, StandardCharsets.UTF_8) + "\n";
-                        FileUtils.SaveString(mOtherContext, mStringBuilder, InvokPackage);
-
-                    }
-
-                    @Override
-                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                        super.afterHookedMethod(param);
-                        StringBuilder mStringBuilder = new StringBuilder(Md5Digest);
-
-                        MessageDigest msgDitest = (MessageDigest) param.thisObject;
-
-                        String algorithm = msgDitest.getAlgorithm();
-                        mStringBuilder.append("\n");
-                        byte[] Result = (byte[]) param.getResult();
-                        StringBuilder result = getMd5(Result);
-                        mStringBuilder.append(algorithm).append(" 返回结果  ").append(result).append("\n").
-                                append("MessageDigest   toString 返回结果 ").append(msgDitest.toString()).append("\n");
-                        getStackTraceMessage(mStringBuilder);
-
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
-                    }
-                }
-        );
-
-
-        //MD5 和 sha-1
-        //byte[] bytes = md5.digest();
-        XposedHelpers.findAndHookMethod(MessageDigest.class, Md5Digest,
-                new XC_MethodHook() {
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        super.beforeHookedMethod(param);
-
-                        //加密 类型
-                        MessageDigest thisObject = (MessageDigest) param.thisObject;
-                        String algorithm = thisObject.getAlgorithm();
-
-                        String mStringBuilder = Md5Digest + "    名字   "+algorithm+"加密 " + Md5Digest + "   \n" +
-                                mSimpleDateFormat.format(new Date()) + "\n" +
-                                param.thisObject.getClass().getName() + "." + Md5Digest + "\n" ;
-                        FileUtils.SaveString(mOtherContext, mStringBuilder, InvokPackage);
-
-
-                    }
-
-                    @Override
-                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                        super.afterHookedMethod(param);
-                        StringBuilder mStringBuilder = new StringBuilder(Md5Digest);
-
-                        MessageDigest msgDitest = (MessageDigest) param.thisObject;
-
-                        String algorithm = msgDitest.getAlgorithm();
-                        mStringBuilder.append("\n");
-                        byte[] Result = (byte[]) param.getResult();
-                        StringBuilder result = getMd5(Result);
-                        mStringBuilder.append(algorithm).append(" 返回结果  ").append(result).append("\n").
-                        append("MessageDigest   toString 返回结果 ").append(msgDitest.toString()).append("\n");
-                        getStackTraceMessage(mStringBuilder);
-
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
-                    }
-                }
-        );
-
-
-
-        //MessageDigest msgDitest = MessageDigest.getInstance("SHA-1");
-        //msgDitest.update(content.getBytes());
-        XposedHelpers.findAndHookMethod(MessageDigest.class, Update,
-                byte[].class,
-                new XC_MethodHook() {
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        super.beforeHookedMethod(param);
-
-                        byte[] bytes = (byte[]) param.args[0];
-                        //加密 类型
-                        MessageDigest thisObject = (MessageDigest) param.thisObject;
-                        String algorithm = thisObject.getAlgorithm();
-
-                        String mStringBuilder = Md5Digest + "    名字   "+algorithm+"加密 " + Update + "   \n" +
-                                mSimpleDateFormat.format(new Date()) + "\n" +
-                                param.thisObject.getClass().getName() + "." + Md5Digest + "\n" +
-                                "参数 1   U8编码   " + new String(bytes, StandardCharsets.UTF_8) + "\n";
-                        FileUtils.SaveString(mOtherContext, mStringBuilder, InvokPackage);
-
-
-                    }
-
-                    @Override
-                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                        super.afterHookedMethod(param);
-                        StringBuilder mStringBuilder = new StringBuilder(Md5Digest);
-
-                        MessageDigest msgDitest = (MessageDigest) param.thisObject;
-
-                        String algorithm = msgDitest.getAlgorithm();
-                        mStringBuilder.append("\n");
-                        byte[] Result = (byte[]) param.getResult();
-                        StringBuilder result = getMd5(Result);
-                        mStringBuilder.append(algorithm).append(" 返回结果  ").append(result).append("\n").
-                                append("MessageDigest   toString 返回结果 ").append(msgDitest.toString()).append("\n");
-                        getStackTraceMessage(mStringBuilder);
-
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
-                    }
-                }
-        );
-
-
-
-
-        // 这个方法AES或者 RSA都有可能用
-        // cipher.doFinal(content.getBytes("UTF-8"));
-        XposedHelpers.findAndHookMethod(Cipher.class, DoFinal,
-                byte[].class,
-                new XC_MethodHook() {
-
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        super.beforeHookedMethod(param);
-                        byte[] bytes = (byte[]) param.args[0];
-
-                        String mStringBuilder = DoFinal + "    方法名字   " + DoFinal + "   \n" +
-                                mSimpleDateFormat.format(new Date()) + "\n" +
-                                param.thisObject.getClass().getName() + "." + DoFinal + "\n" +
-                                "参数 1   U8编码 " + new String(bytes, StandardCharsets.UTF_8) + "\n" +
-                                "参数 2   16进制 编码 " + bytesToHexString(bytes) + "\n";
-                        FileUtils.SaveString(mOtherContext, mStringBuilder, InvokPackage);
-
-                    }
-
-                    @Override
-                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                        super.afterHookedMethod(param);
-                        StringBuilder mStringBuilder = new StringBuilder(DoFinal);
-
-                        mStringBuilder.append("\n");
-                        byte[] Result = (byte[]) param.getResult();
-
-                        mStringBuilder.append("加密  16进制   返回结果  ").append(bytesToHexString(Result)).append("\n");
-                        mStringBuilder.append("加密  U8编码    返回结果  ").append(new String(Result, StandardCharsets.UTF_8)).append("\n");
-
-                        getStackTraceMessage(mStringBuilder);
-
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
-
-                    }
-                }
-        );
-
-
-
-        //cipher.init(Cipher.ENCRYPT_MODE, skeySpec);
-        XposedHelpers.findAndHookMethod(Cipher.class, Init,
-                int.class,
-                Key.class,
-                new XC_MethodHook() {
-
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        super.beforeHookedMethod(param);
-                        StringBuilder mStringBuilder = new StringBuilder(Init);
-
-
-                        //这个方法 主要是 拿到 私钥
-                        Object Key = param.args[1];
-                        String algorithm = getAlgorithm(Key);
-
-                        mStringBuilder.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("   加密初始化(ECB 模式)    方法名字   " + Init + "\n").
-                                append(mSimpleDateFormat.format(new Date())).append("\n").
-                                append(param.thisObject.getClass().getName()).append(".").append(Init).append("\n");
-
-
-                        byte[] encodedMethodAndInvoke = getEncodedMethodAndInvoke(Key);
-                        if (encodedMethodAndInvoke != null) {
-                            mStringBuilder.append("私钥的 UTF-8 编码    ").append(new String(encodedMethodAndInvoke, StandardCharsets.UTF_8)).append("\n");
-                            mStringBuilder.append("私钥的 16 进制  编码    ").append(bytesToHexString(encodedMethodAndInvoke)).append("\n");
-                        }
-                        getStackTraceMessage(mStringBuilder);
-
-
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
-                    }
-
-                }
-        );
-
-
-        //AES加密算法 初始化的时候 两个 参数 是ECB  模式 不需要 IV
-        //三个 参数 的 需要 IV
-        //cipher.init(Cipher.ENCRYPT_MODE, skeySpec,IvParameterSpec);
-        XposedHelpers.findAndHookMethod(Cipher.class, Init,
-                int.class,
-                Key.class,
-                AlgorithmParameters.class,
-                new XC_MethodHook() {
-
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        super.beforeHookedMethod(param);
-                        StringBuilder mStringBuilder = new StringBuilder(Init);
-
-                        CLogUtils.e("参数 类型 int   key   AlgorithmParameters");
-                        //这个方法 主要是 拿到 私钥
-                        Object Key = param.args[1];
-                        String algorithm = getAlgorithm(Key);
-                        Object IV = param.args[2];
-
-                        //getAlgorithm
-                        mStringBuilder.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("  加密初始化(CBC 模式  三个 参数   需要  IV)    方法名字   " + Init + "\n").
-                                append(mSimpleDateFormat.format(new Date())).append("\n").
-                                append(param.thisObject.getClass().getName()).append(".").append(Init).append("\n");
-
-
-                        byte[] encodedMethodAndInvoke = getEncodedMethodAndInvoke(Key);
-                        if (encodedMethodAndInvoke != null) {
-                            mStringBuilder.append("私钥的 UTF-8 编码    ").append(new String(encodedMethodAndInvoke, StandardCharsets.UTF_8)).append("\n");
-                            mStringBuilder.append("私钥的 16 进制  编码    ").append(bytesToHexString(encodedMethodAndInvoke)).append("\n");
-                        }
-                        byte[] getIvFieldAndIvoke = getIvFieldAndIvoke(IV);
-                        if (getIvFieldAndIvoke != null) {
-                            mStringBuilder.append("IV 的 UTF-8 编码    ").append(new String(getIvFieldAndIvoke, StandardCharsets.UTF_8)).append("\n");
-                            mStringBuilder.append("IV 的 16 进制  编码    ").append(bytesToHexString(getIvFieldAndIvoke)).append("\n");
+            XposedHelpers.findAndHookMethod(Base64.class, Base64Decode,
+                    String.class,
+                    int.class,
+                    new XC_MethodHook() {
+
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            super.beforeHookedMethod(param);
+                            StringBuffer stringBuffer = new StringBuffer(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                            String bytes = param.args[0].toString();
+                            stringBuffer.append("    方法名字   Base64." + Base64Decode + "   \n").
+                                    append(mSimpleDateFormat.format(new Date())).append("\n");
+                            if(param.thisObject!=null) {
+                                stringBuffer.append(param.thisObject!=null? param.thisObject.getClass().getName():"").append(".").append(Base64Decode).append("\n");
+                            }
+                            stringBuffer.append("Base64.decode(String,int)  参数 1   ").append(bytes);
+                            FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
                         }
 
-                        getStackTraceMessage(mStringBuilder);
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                            super.afterHookedMethod(param);
+                            StringBuilder mStringBuilder = new StringBuilder("Base." + Base64Decode);
+
+                            mStringBuilder.append("\n");
+                            byte[] Result = (byte[]) param.getResult();
+                            mStringBuilder.append("返回结果  U8编码 ").append(new String(Result, StandardCharsets.UTF_8)).append("\n");
+                            mStringBuilder.append("返回结果  16进制 编码 ").append(bytesToHexString(Result)).append("\n").
+                                    append("加密之前的 内容 Base64.decode(String,int); 参数1内容  ").append(param.args[0].toString()).append("\n");
 
 
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                            getStackTraceMessage(mStringBuilder);
+                            mStringBuilder.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
+
+                            FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                        }
+                    }
+            );
+
+
+            //MD5 和 sha-1
+            //byte[] bytes = md5.digest(string.getBytes());
+            XposedHelpers.findAndHookMethod(MessageDigest.class, Md5Digest,
+                    byte[].class,
+                    new XC_MethodHook() {
+
+
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            super.beforeHookedMethod(param);
+
+                            byte[] bytes = (byte[]) param.args[0];
+
+                            //加密 类型
+                            MessageDigest thisObject = (MessageDigest) param.thisObject;
+                            String algorithm = thisObject.getAlgorithm();
+                            StringBuffer stringBuffer = new StringBuffer(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                            String mStringBuilder = Md5Digest + "    名字   " + algorithm + "加密 " + Md5Digest + "   \n" +
+                                    mSimpleDateFormat.format(new Date()) + "\n" +
+                                    param.thisObject!=null? param.thisObject.getClass().getName():"" + "." + Md5Digest + "\n" +
+                                    "参数 1   U8编码   " + new String(bytes, StandardCharsets.UTF_8) + "\n";
+                            stringBuffer.append(mStringBuilder);
+                            FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
+
+                        }
+
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                            super.afterHookedMethod(param);
+                            StringBuilder mStringBuilder = new StringBuilder(Md5Digest);
+
+                            MessageDigest msgDitest = (MessageDigest) param.thisObject;
+
+                            String algorithm = msgDitest.getAlgorithm();
+                            mStringBuilder.append("\n");
+                            byte[] Result = (byte[]) param.getResult();
+
+                            StringBuilder result = getMd5(Result);
+
+                            mStringBuilder.append(algorithm).append(" 返回结果  ").append(result).append("\n").
+                                    append("MessageDigest digest  toString 返回结果 ").append(msgDitest.toString()).append("\n")
+
+                                    .append("加密之前 参数1  U8编码 " + new String((byte[]) param.args[0], StandardCharsets.UTF_8)).append("\n")
+                                    .append("加密之前 参数1  16进制编码 " + bytesToHexString((byte[]) param.args[0]));
+
+                            getStackTraceMessage(mStringBuilder);
+                            mStringBuilder.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
+
+                            FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                        }
+                    }
+            );
+
+
+            //MD5 和 sha-1
+            //byte[] bytes = md5.digest();
+            XposedHelpers.findAndHookMethod(MessageDigest.class, Md5Digest,
+                    new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            super.beforeHookedMethod(param);
+
+                            StringBuffer stringBuffer = new StringBuffer(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+
+                            //加密 类型
+                            MessageDigest thisObject = (MessageDigest) param.thisObject;
+                            String algorithm = thisObject.getAlgorithm();
+
+                            String mStringBuilder = Md5Digest + "    名字   " + algorithm + "加密 " + Md5Digest + "   \n" +
+                                    mSimpleDateFormat.format(new Date()) + "\n" +
+                                    param.thisObject!=null? param.thisObject.getClass().getName():"" + "." + Md5Digest + "\n";
+                            stringBuffer.append(mStringBuilder);
+                            FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
+
+
+                        }
+
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                            super.afterHookedMethod(param);
+                            StringBuilder mStringBuilder = new StringBuilder(Md5Digest);
+
+                            MessageDigest msgDitest = (MessageDigest) param.thisObject;
+
+                            String algorithm = msgDitest.getAlgorithm();
+                            mStringBuilder.append("\n");
+                            byte[] Result = (byte[]) param.getResult();
+                            StringBuilder result = getMd5(Result);
+                            mStringBuilder.append(algorithm).append("byte[] bytes = md5.digest(无参)  返回结果  ").append(result).append("\n").
+                                    append("MessageDigest   toString 返回结果 ").append(msgDitest.toString()).append("\n");
+
+                            getStackTraceMessage(mStringBuilder);
+                            mStringBuilder.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
+
+                            FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                        }
+                    }
+            );
+
+
+            //MessageDigest msgDitest = MessageDigest.getInstance("SHA-1");
+            //msgDitest.update(Bytes[]);
+            XposedHelpers.findAndHookMethod(MessageDigest.class, Update,
+                    byte[].class,
+                    new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            super.beforeHookedMethod(param);
+
+                            byte[] bytes = (byte[]) param.args[0];
+                            //加密 类型
+                            MessageDigest thisObject = (MessageDigest) param.thisObject;
+                            String algorithm = thisObject.getAlgorithm();
+                            StringBuffer stringBuffer = new StringBuffer(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+
+                            String mStringBuilder = Md5Digest + "    名字   " + algorithm + "加密 " + Update + "   \n" +
+                                    mSimpleDateFormat.format(new Date()) + "\n" +
+                                    param.thisObject!=null? param.thisObject.getClass().getName():"" + "." + Md5Digest + "\n" +
+                                    "参数 1   U8编码   " + new String(bytes, StandardCharsets.UTF_8) + "\n";
+                            stringBuffer.append(mStringBuilder);
+                            FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
+
+
+                        }
+
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                            super.afterHookedMethod(param);
+                            StringBuilder mStringBuilder = new StringBuilder(Md5Digest);
+
+                            MessageDigest msgDitest = (MessageDigest) param.thisObject;
+
+                            String algorithm = msgDitest.getAlgorithm();
+                            mStringBuilder.append("\n");
+                            byte[] Result = (byte[]) param.getResult();
+                            StringBuilder result = getMd5(Result);
+                            mStringBuilder.append(algorithm).append(" 返回结果  ").append(result).append("\n").
+                                    append("MessageDigest   toString 返回结果 ").append(msgDitest.toString()).append("\n").
+                                    append("msgDitest.update(Bytes[])  参数1 U8编码 " + new String((byte[]) param.args[0], StandardCharsets.UTF_8)).
+                                    append("msgDitest.update(Bytes[])  参数1 16进制 编码 " + bytesToHexString((byte[]) param.args[0]))
+
+
+                            ;
+                            getStackTraceMessage(mStringBuilder);
+                            mStringBuilder.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
+
+                            FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                        }
+                    }
+            );
+
+
+            // 这个方法AES或者 RSA都有可能用
+            //byte[] cipher.doFinal(Byte[]);
+            XposedHelpers.findAndHookMethod(Cipher.class, DoFinal,
+                    byte[].class,
+                    new XC_MethodHook() {
+
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            super.beforeHookedMethod(param);
+                            byte[] bytes = (byte[]) param.args[0];
+                            StringBuffer stringBuffer = new StringBuffer(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+
+                            String mStringBuilder = DoFinal + "    方法名字   " + DoFinal + "   \n" +
+                                    mSimpleDateFormat.format(new Date()) + "\n" +
+                                    param.thisObject!=null? param.thisObject.getClass().getName():""+ "." + DoFinal + "\n" +
+                                    "参数 1   U8编码 " + new String(bytes, StandardCharsets.UTF_8) + "\n" +
+                                    "参数 2   16进制 编码 " + bytesToHexString(bytes) + "\n";
+                            stringBuffer.append(mStringBuilder);
+                            FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
+
+                        }
+
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                            super.afterHookedMethod(param);
+                            StringBuilder mStringBuilder = new StringBuilder(DoFinal);
+
+                            mStringBuilder.append("\n");
+                            byte[] Result = (byte[]) param.getResult();
+                            mStringBuilder.append("byte[] cipher.doFinal(Byte[]) 参数1 U8编码  ").append(new String((byte[]) param.args[0], StandardCharsets.UTF_8)).append("\n");
+                            mStringBuilder.append("byte[] cipher.doFinal(Byte[]) 参数1 16进制编码  ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
+
+                            mStringBuilder.append("byte[] cipher.doFinal(Byte[])  加密  16进制   返回结果  ").append(bytesToHexString(Result)).append("\n");
+                            mStringBuilder.append("byte[] cipher.doFinal(Byte[])  加密  U8编码    返回结果  ").append(new String(Result, StandardCharsets.UTF_8)).append("\n");
+
+                            getStackTraceMessage(mStringBuilder);
+                            mStringBuilder.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
+
+                            FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+
+                        }
+                    }
+            );
+
+
+            //cipher.init(Cipher.ENCRYPT_MODE, skeySpec);
+            XposedHelpers.findAndHookMethod(Cipher.class, Init,
+                    int.class,
+                    Key.class,
+                    new XC_MethodHook() {
+
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            super.beforeHookedMethod(param);
+                            StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+
+                            stringBuffer.append("两个参数 cipher.init(Cipher.ENCRYPT_MODE, skeySpec) 不需要IV").append("\n");
+
+
+                            //这个方法 主要是 拿到 私钥
+                            Object Key = param.args[1];
+                            String algorithm = getAlgorithm(Key);
+
+                            stringBuffer.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("   加密初始化(ECB 模式)    方法名字   " + Init + "\n").
+                                    append(mSimpleDateFormat.format(new Date())).append("\n").
+                                    append(param.thisObject!=null? param.thisObject.getClass().getName():"").append(".").append(Init).append("\n");
+
+
+                            byte[] encodedMethodAndInvoke = getEncodedMethodAndInvoke(Key);
+                            if (encodedMethodAndInvoke != null) {
+                                stringBuffer.append("私钥的 UTF-8 编码    ").append(new String(encodedMethodAndInvoke, StandardCharsets.UTF_8)).append("\n");
+                                stringBuffer.append("私钥的 16 进制  编码    ").append(bytesToHexString(encodedMethodAndInvoke)).append("\n");
+                            }
+                            getStackTraceMessage(stringBuffer);
+                            stringBuffer.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
+
+
+                            FileUtils.SaveString(mOtherContext, stringBuffer.toString().toString(), InvokPackage);
+                        }
 
                     }
-
-                }
-        );
+            );
 
 
-        //cipher.init(Cipher.ENCRYPT_MODE, skeySpec,IvParameterSpec);
-        XposedHelpers.findAndHookMethod(Cipher.class, Init,
-                int.class,
-                Key.class,
-                AlgorithmParameters.class,
-                SecureRandom.class,
-                new XC_MethodHook() {
+            //AES加密算法 初始化的时候 两个 参数 是ECB  模式 不需要 IV
+            //三个 参数 的 需要 IV
+            //cipher.init(Cipher.ENCRYPT_MODE, skeySpec,IvParameterSpec);
+            XposedHelpers.findAndHookMethod(Cipher.class, Init,
+                    int.class,
+                    Key.class,
+                    AlgorithmParameters.class,
+                    new XC_MethodHook() {
 
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        super.beforeHookedMethod(param);
-                        StringBuilder mStringBuilder = new StringBuilder(Init);
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            super.beforeHookedMethod(param);
+                            StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                            stringBuffer.append("三个参数 需要 IV  cipher.init(Cipher.ENCRYPT_MODE, skeySpec,IvParameterSpec) ").append("\n");
 
-                        CLogUtils.e("参数 类型 int   key   AlgorithmParameters   SecureRandom");
+                            CLogUtils.e("参数 类型 int   key   AlgorithmParameters");
+                            //这个方法 主要是 拿到 私钥
+                            Object Key = param.args[1];
+                            String algorithm = getAlgorithm(Key);
+                            Object IV = param.args[2];
 
-                        //这个方法 主要是 拿到 私钥
-                        Object Key = param.args[1];
-                        String algorithm = getAlgorithm(Key);
-                        Object IV = param.args[2];
-
-                        //getAlgorithm
-                        mStringBuilder.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("            加密初始化(CBC 模式  三个 参数   需要  IV)    方法名字   " + Init + "\n").
-                                append(mSimpleDateFormat.format(new Date())).append("\n").
-                                append(param.thisObject.getClass().getName()).append(".").append(Init).append("\n");
+                            //getAlgorithm
+                            stringBuffer.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("  加密初始化(CBC 模式  三个 参数   需要  IV)    方法名字   " + Init + "\n").
+                                    append(mSimpleDateFormat.format(new Date())).append("\n").
+                                    append(param.thisObject!=null? param.thisObject.getClass().getName():"").append(".").append(Init).append("\n");
 
 
-                        byte[] encodedMethodAndInvoke = getEncodedMethodAndInvoke(Key);
-                        if (encodedMethodAndInvoke != null) {
-                            mStringBuilder.append("私钥的 UTF-8 编码    ").append(new String(encodedMethodAndInvoke, StandardCharsets.UTF_8)).append("\n");
-                            mStringBuilder.append("私钥的 16 进制  编码    ").append(bytesToHexString(encodedMethodAndInvoke)).append("\n");
+                            byte[] encodedMethodAndInvoke = getEncodedMethodAndInvoke(Key);
+                            if (encodedMethodAndInvoke != null) {
+                                stringBuffer.append("私钥的 UTF-8 编码    ").append(new String(encodedMethodAndInvoke, StandardCharsets.UTF_8)).append("\n");
+                                stringBuffer.append("私钥的 16 进制  编码    ").append(bytesToHexString(encodedMethodAndInvoke)).append("\n");
+                            }
+                            byte[] getIvFieldAndIvoke = getIvFieldAndIvoke(IV);
+                            if (getIvFieldAndIvoke != null) {
+                                stringBuffer.append("IV 的 UTF-8 编码    ").append(new String(getIvFieldAndIvoke, StandardCharsets.UTF_8)).append("\n");
+                                stringBuffer.append("IV 的 16 进制  编码    ").append(bytesToHexString(getIvFieldAndIvoke)).append("\n");
+                            }
+
+                            getStackTraceMessage(stringBuffer);
+                            stringBuffer.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
+
+
+                            FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
+
                         }
-                        byte[] getIvFieldAndIvoke = getIvFieldAndIvoke(IV);
-                        if (getIvFieldAndIvoke != null) {
-                            mStringBuilder.append("IV 的 UTF-8 编码    ").append(new String(getIvFieldAndIvoke, StandardCharsets.UTF_8)).append("\n");
-                            mStringBuilder.append("IV 的 16 进制  编码    ").append(bytesToHexString(getIvFieldAndIvoke)).append("\n");
-                        }
-
-                        getStackTraceMessage(mStringBuilder);
-
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
 
                     }
-
-                }
-        );
+            );
 
 
-        XposedHelpers.findAndHookMethod(Cipher.class, Init,
-                int.class,
-                Key.class,
-                AlgorithmParameterSpec.class,
-                new XC_MethodHook() {
+            //cipher.init(Cipher.ENCRYPT_MODE, skeySpec,IvParameterSpec);
+            XposedHelpers.findAndHookMethod(Cipher.class, Init,
+                    int.class,
+                    Key.class,
+                    AlgorithmParameters.class,
+                    SecureRandom.class,
+                    new XC_MethodHook() {
 
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        super.beforeHookedMethod(param);
-                        StringBuilder mStringBuilder = new StringBuilder(Init);
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            super.beforeHookedMethod(param);
+                            StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                            stringBuffer.append("cipher.init(Cipher.ENCRYPT_MODE, skeySpec,IvParameterSpec) ").append("\n");
 
-                        CLogUtils.e("参数 类型 int   key   AlgorithmParameterSpec  ");
-                        //这个方法 主要是 拿到 私钥
-                        Object Key = param.args[1];
-                        String algorithm = getAlgorithm(Key);
-                        Object IV = param.args[2];
+                            CLogUtils.e("参数 类型 int   key   AlgorithmParameters   SecureRandom");
 
-                        //getAlgorithm
-                        mStringBuilder.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("        加密初始化(CBC 模式  三个 参数   需要  IV)    方法名字   " + Init + "\n").append(mSimpleDateFormat.format(new Date())).append("\n").
-                                append(param.thisObject.getClass().getName()).append(".").append(Init).append("\n");
+                            //这个方法 主要是 拿到 私钥
+                            Object Key = param.args[1];
+                            String algorithm = getAlgorithm(Key);
+                            Object IV = param.args[2];
+
+                            //getAlgorithm
+                            stringBuffer.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("            加密初始化(CBC 模式  三个 参数   需要  IV)    方法名字   " + Init + "\n").
+                                    append(mSimpleDateFormat.format(new Date())).append("\n").
+                                    append(param.thisObject!=null? param.thisObject.getClass().getName():"").append(".").append(Init).append("\n");
 
 
-                        byte[] encodedMethodAndInvoke = getEncodedMethodAndInvoke(Key);
-                        if (encodedMethodAndInvoke != null) {
-                            mStringBuilder.append("私钥的 UTF-8 编码    ").append(new String(encodedMethodAndInvoke, StandardCharsets.UTF_8)).append("\n");
-                            mStringBuilder.append("私钥的 16 进制  编码    ").append(bytesToHexString(encodedMethodAndInvoke)).append("\n");
+                            byte[] encodedMethodAndInvoke = getEncodedMethodAndInvoke(Key);
+                            if (encodedMethodAndInvoke != null) {
+                                stringBuffer.append("私钥的 UTF-8 编码    ").append(new String(encodedMethodAndInvoke, StandardCharsets.UTF_8)).append("\n");
+                                stringBuffer.append("私钥的 16 进制  编码    ").append(bytesToHexString(encodedMethodAndInvoke)).append("\n");
+                            }
+                            byte[] getIvFieldAndIvoke = getIvFieldAndIvoke(IV);
+                            if (getIvFieldAndIvoke != null) {
+                                stringBuffer.append("IV 的 UTF-8 编码    ").append(new String(getIvFieldAndIvoke, StandardCharsets.UTF_8)).append("\n");
+                                stringBuffer.append("IV 的 16 进制  编码    ").append(bytesToHexString(getIvFieldAndIvoke)).append("\n");
+                            }
+
+                            getStackTraceMessage(stringBuffer);
+                            stringBuffer.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
+
+                            FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
+
                         }
-                        byte[] getIvFieldAndIvoke = getIvFieldAndIvoke(IV);
-                        if (getIvFieldAndIvoke != null) {
-                            mStringBuilder.append("IV 的 UTF-8 编码    ").append(new String(getIvFieldAndIvoke, StandardCharsets.UTF_8)).append("\n");
-                            mStringBuilder.append("IV 的 16 进制  编码    ").append(bytesToHexString(getIvFieldAndIvoke)).append("\n");
-                        }
-                        getStackTraceMessage(mStringBuilder);
-
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
 
                     }
-
-                }
-        );
-
-        XposedHelpers.findAndHookMethod(Cipher.class, Init,
-                int.class,
-                Key.class,
-                AlgorithmParameterSpec.class,
-                SecureRandom.class,
-                new XC_MethodHook() {
-
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        super.beforeHookedMethod(param);
-                        StringBuilder mStringBuilder = new StringBuilder(Init);
-
-                        CLogUtils.e("参数 类型 int   key   AlgorithmParameterSpec SecureRandom ");
-                        //这个方法 主要是 拿到 私钥
-                        Object Key = param.args[1];
-                        String algorithm = getAlgorithm(Key);
-                        Object IV = param.args[2];
-
-                        //getAlgorithm
-                        mStringBuilder.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("  加密初始化(CBC 模式  三个 参数   需要  IV)    方法名字   " + Init + "\n").append(mSimpleDateFormat.format(new Date())).append("\n").
-                                append(param.thisObject.getClass().getName()).append(".").append(Init).append("\n");
+            );
 
 
-                        byte[] encodedMethodAndInvoke = getEncodedMethodAndInvoke(Key);
-                        if (encodedMethodAndInvoke != null) {
-                            mStringBuilder.append("私钥的 UTF-8 编码    ").append(new String(encodedMethodAndInvoke, StandardCharsets.UTF_8)).append("\n");
-                            mStringBuilder.append("私钥的 16 进制  编码    ").append(bytesToHexString(encodedMethodAndInvoke)).append("\n");
+            XposedHelpers.findAndHookMethod(Cipher.class, Init,
+                    int.class,
+                    Key.class,
+                    AlgorithmParameterSpec.class,
+                    new XC_MethodHook() {
+
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            super.beforeHookedMethod(param);
+                            StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                            stringBuffer.append("cipher.init(Cipher.ENCRYPT_MODE, skeySpec,AlgorithmParameterSpec ) ").append("\n");
+
+                            CLogUtils.e("参数 类型 int   key   AlgorithmParameterSpec  ");
+                            //这个方法 主要是 拿到 私钥
+                            Object Key = param.args[1];
+                            String algorithm = getAlgorithm(Key);
+                            Object IV = param.args[2];
+
+                            //getAlgorithm
+                            stringBuffer.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("        加密初始化(CBC 模式  三个 参数   需要  IV)    方法名字   " + Init + "\n").append(mSimpleDateFormat.format(new Date())).append("\n").
+                                    append(param.thisObject!=null? param.thisObject.getClass().getName():"").append(".").append(Init).append("\n");
+
+
+                            byte[] encodedMethodAndInvoke = getEncodedMethodAndInvoke(Key);
+                            if (encodedMethodAndInvoke != null) {
+                                stringBuffer.append("私钥的 UTF-8 编码    ").append(new String(encodedMethodAndInvoke, StandardCharsets.UTF_8)).append("\n");
+                                stringBuffer.append("私钥的 16 进制  编码    ").append(bytesToHexString(encodedMethodAndInvoke)).append("\n");
+                            }
+                            byte[] getIvFieldAndIvoke = getIvFieldAndIvoke(IV);
+                            if (getIvFieldAndIvoke != null) {
+                                stringBuffer.append("IV 的 UTF-8 编码    ").append(new String(getIvFieldAndIvoke, StandardCharsets.UTF_8)).append("\n");
+                                stringBuffer.append("IV 的 16 进制  编码    ").append(bytesToHexString(getIvFieldAndIvoke)).append("\n");
+                            }
+                            getStackTraceMessage(stringBuffer);
+                            stringBuffer.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
+
+                            FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
+
                         }
-                        byte[] getIvFieldAndIvoke = getIvFieldAndIvoke(IV);
-                        if (getIvFieldAndIvoke != null) {
-                            mStringBuilder.append("IV 的 UTF-8 编码    ").append(new String(getIvFieldAndIvoke, StandardCharsets.UTF_8)).append("\n");
-                            mStringBuilder.append("IV 的 16 进制  编码    ").append(bytesToHexString(getIvFieldAndIvoke)).append("\n");
-                        }
-                        getStackTraceMessage(mStringBuilder);
-
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
 
                     }
+            );
 
-                }
-        );
+            XposedHelpers.findAndHookMethod(Cipher.class, Init,
+                    int.class,
+                    Key.class,
+                    AlgorithmParameterSpec.class,
+                    SecureRandom.class,
+                    new XC_MethodHook() {
+
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            super.beforeHookedMethod(param);
+                            StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                            stringBuffer.append("cipher.init(Cipher.ENCRYPT_MODE, skeySpec,AlgorithmParameterSpec,SecureRandom) ").append("\n");
+
+                            CLogUtils.e("参数 类型 int   key   AlgorithmParameterSpec SecureRandom ");
+                            //这个方法 主要是 拿到 私钥
+                            Object Key = param.args[1];
+                            String algorithm = getAlgorithm(Key);
+                            Object IV = param.args[2];
+
+                            //getAlgorithm
+                            stringBuffer.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("  加密初始化(CBC 模式  三个 参数   需要  IV)    方法名字   " + Init + "\n").append(mSimpleDateFormat.format(new Date())).append("\n").
+                                    append(param.thisObject!=null? param.thisObject.getClass().getName():"").append(".").append(Init).append("\n");
 
 
-        XposedHelpers.findAndHookMethod(Cipher.class, Init,
-                int.class,
-                Key.class,
-                SecureRandom.class,
-                new XC_MethodHook() {
+                            byte[] encodedMethodAndInvoke = getEncodedMethodAndInvoke(Key);
+                            if (encodedMethodAndInvoke != null) {
+                                stringBuffer.append("私钥的 UTF-8 编码    ").append(new String(encodedMethodAndInvoke, StandardCharsets.UTF_8)).append("\n");
+                                stringBuffer.append("私钥的 16 进制  编码    ").append(bytesToHexString(encodedMethodAndInvoke)).append("\n");
+                            }
+                            byte[] getIvFieldAndIvoke = getIvFieldAndIvoke(IV);
+                            if (getIvFieldAndIvoke != null) {
+                                stringBuffer.append("IV 的 UTF-8 编码    ").append(new String(getIvFieldAndIvoke, StandardCharsets.UTF_8)).append("\n");
+                                stringBuffer.append("IV 的 16 进制  编码    ").append(bytesToHexString(getIvFieldAndIvoke)).append("\n");
+                            }
+                            getStackTraceMessage(stringBuffer);
+                            stringBuffer.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
 
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        super.beforeHookedMethod(param);
-                        StringBuilder mStringBuilder = new StringBuilder(Init);
+                            FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
 
-                        CLogUtils.e("参数 类型 int   key    SecureRandom ");
-                        //这个方法 主要是 拿到 私钥
-                        Object Key = param.args[1];
-                        String algorithm = getAlgorithm(Key);
-                        Object IV = param.args[2];
-
-                        //getAlgorithm
-                        mStringBuilder.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("  加密初始化(CBC 模式  三个 参数   需要  IV)    方法名字   " + Init + "\n").append(mSimpleDateFormat.format(new Date())).append("\n").
-                                append(param.thisObject.getClass().getName()).append(".").append(Init).append("\n");
-
-
-                        byte[] encodedMethodAndInvoke = getEncodedMethodAndInvoke(Key);
-                        if (encodedMethodAndInvoke != null) {
-                            mStringBuilder.append("私钥的 UTF-8 编码    ").append(new String(encodedMethodAndInvoke, StandardCharsets.UTF_8)).append("\n");
-                            mStringBuilder.append("私钥的 16 进制  编码    ").append(bytesToHexString(encodedMethodAndInvoke)).append("\n");
                         }
-                        byte[] getIvFieldAndIvoke = getIvFieldAndIvoke(IV);
-                        if (getIvFieldAndIvoke != null) {
-                            mStringBuilder.append("IV 的 UTF-8 编码    ").append(new String(getIvFieldAndIvoke, StandardCharsets.UTF_8)).append("\n");
-                            mStringBuilder.append("IV 的 16 进制  编码    ").append(bytesToHexString(getIvFieldAndIvoke)).append("\n");
-                        }
-                        getStackTraceMessage(mStringBuilder);
-
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
 
                     }
+            );
+
+
+            XposedHelpers.findAndHookMethod(Cipher.class, Init,
+                    int.class,
+                    Key.class,
+                    SecureRandom.class,
+                    new XC_MethodHook() {
+
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            super.beforeHookedMethod(param);
+                            StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                            stringBuffer.append("cipher.init(Cipher.ENCRYPT_MODE, skeySpec,SecureRandom) ").append("\n");
+
+                            CLogUtils.e("参数 类型 int   key    SecureRandom ");
+                            //这个方法 主要是 拿到 私钥
+                            Object Key = param.args[1];
+                            String algorithm = getAlgorithm(Key);
+                            Object IV = param.args[2];
+
+                            //getAlgorithm
+                            stringBuffer.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("  加密初始化(CBC 模式  三个 参数   需要  IV)    方法名字   " + Init + "\n").append(mSimpleDateFormat.format(new Date())).append("\n").
+                                    append(param.thisObject!=null? param.thisObject.getClass().getName():"").append(".").append(Init).append("\n");
+
+
+                            byte[] encodedMethodAndInvoke = getEncodedMethodAndInvoke(Key);
+                            if (encodedMethodAndInvoke != null) {
+                                stringBuffer.append("私钥的 UTF-8 编码    ").append(new String(encodedMethodAndInvoke, StandardCharsets.UTF_8)).append("\n");
+                                stringBuffer.append("私钥的 16 进制  编码    ").append(bytesToHexString(encodedMethodAndInvoke)).append("\n");
+                            }
+                            byte[] getIvFieldAndIvoke = getIvFieldAndIvoke(IV);
+                            if (getIvFieldAndIvoke != null) {
+                                stringBuffer.append("IV 的 UTF-8 编码    ").append(new String(getIvFieldAndIvoke, StandardCharsets.UTF_8)).append("\n");
+                                stringBuffer.append("IV 的 16 进制  编码    ").append(bytesToHexString(getIvFieldAndIvoke)).append("\n");
+                            }
+                            getStackTraceMessage(stringBuffer);
+                            stringBuffer.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
+
+                            FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
+
+                        }
+
+                    }
+            );
+
+            //new JsonObject();
+            XposedHelpers.findAndHookConstructor(JSONObject.class, String.class, new XC_MethodHook() {
+                @Override
+                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                    super.afterHookedMethod(param);
+                    StringBuilder mStringBuilder = new StringBuilder("JsonObject 构造方法 " + "\n");
+                    String json = ((JSONObject) param.thisObject).toString();
+                    mStringBuilder.append("Json 内容 :  ").append(json).append("\n");
+                    mStringBuilder.append("Json 十六进制编码   :  ").append(bytesToHexString(json.getBytes())).append("\n\n");
+
+                    getStackTraceMessage(mStringBuilder);
+
+                    FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
 
                 }
-        );
-
-        //new JsonObject();
-        XposedHelpers.findAndHookConstructor(JSONObject.class, String.class, new XC_MethodHook() {
-            @Override
-            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                super.afterHookedMethod(param);
-                StringBuilder mStringBuilder = new StringBuilder("JsonObject 构造方法 "+"\n");
-                String json = ((JSONObject) param.thisObject).toString();
-                mStringBuilder.append("Json 内容 :  ").append(json).append("\n");
-                mStringBuilder.append("Json 十六进制编码   :  ").append(bytesToHexString(json.getBytes())).append("\n\n");
-
-                getStackTraceMessage(mStringBuilder);
-
-                FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
-
-            }
-        });
+            });
 
 
-
-
-        //byte[] bytes = "".getBytes();
+            //byte[] bytes = "".getBytes();
 //        XposedHelpers.findAndHookMethod(String.class, getBytes,
 //                Charset.class,
 //                new XC_MethodHook() {
@@ -741,14 +803,16 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 //                    }
 //                }
 //        );
-
-
+        }catch (Throwable throwable){
+            CLogUtils.e("发现异常 "+ throwable.getMessage());
+        }
 
     }
 
 
     /**
      * sha256_HMAC加密
+     *
      * @param message 消息
      * @param secret  秘钥
      * @return 加密后字符串
@@ -766,16 +830,17 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         }
         return hash;
     }
+
     /**
      * 将加密后的字节数组转换成字符串
      *
      * @param b 字节数组
      * @return 字符串
      */
-    public  static String byteArrayToHexString(byte[] b) {
+    public static String byteArrayToHexString(byte[] b) {
         StringBuilder hs = new StringBuilder();
         String stmp;
-        for (int n = 0; b!=null && n < b.length; n++) {
+        for (int n = 0; b != null && n < b.length; n++) {
             stmp = Integer.toHexString(b[n] & 0XFF);
             if (stmp.length() == 1)
                 hs.append('0');
@@ -785,10 +850,12 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     }
 
 
-
     @NonNull
     private StringBuilder getMd5(byte[] result2) {
-        StringBuilder result1 = new StringBuilder();
+        StringBuilder result1 = new StringBuilder("");
+        if(result2==null){
+            return result1;
+        }
         for (byte b : result2) {
             String temp = Integer.toHexString(b & 0xff);
             if (temp.length() == 1) {
@@ -804,13 +871,13 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             throw new Exception("getStackTraceElementException");
         } catch (Exception e) {
             StackTraceElement[] stackTrace = e.getStackTrace();
-            mStringBuilder.append(" --------------------------  >>>> " + "\n");
+            mStringBuilder.append(" --------------------------   " + "\n");
             for (StackTraceElement stackTraceElement : stackTrace) {
                 mStringBuilder.append("栈信息      ").append(stackTraceElement.getClassName()).append(".").append(stackTraceElement.getMethodName()).append("\n");
             }
-            mStringBuilder.append("<<<< --------------------------  " + "\n");
+            mStringBuilder.append(" --------------------------  " + "\n");
         }
-        mStringBuilder.append("\n\n\n");
+        mStringBuilder.append("\n");
     }
 
     private byte[] getIvFieldAndIvoke(Object IV) {
