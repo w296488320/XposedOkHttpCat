@@ -579,13 +579,13 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     private void AddInterceptors(XC_MethodHook.MethodHookParam param) {
         try {
             //interceptors
-            List interceptors = (List) XposedHelpers.getObjectField(param.thisObject, "interceptors");
+            List interceptors = (List) XposedHelpers.getObjectField(param.thisObject, "networkInterceptors");
             CLogUtils.e("拿到了 拦截器  集合 ");
             if(interceptors!=null) {
                 Object httpLoggingInterceptor = getHttpLoggingInterceptor();
                 interceptors.add(httpLoggingInterceptor);
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             CLogUtils.e("Hook到 build但出现 异常 111111     " + e.getMessage());
             e.printStackTrace();
         }

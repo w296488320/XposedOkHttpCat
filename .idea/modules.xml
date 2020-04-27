@@ -2,10 +2,11 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/dexlib2/dexlib2.iml" filepath="$PROJECT_DIR$/dexlib2/dexlib2.iml" />
-      <module fileurl="file://$PROJECT_DIR$/encryptstack/encryptstack.iml" filepath="$PROJECT_DIR$/encryptstack/encryptstack.iml" />
-      <module fileurl="file://$PROJECT_DIR$/ly-xposed.iml" filepath="$PROJECT_DIR$/ly-xposed.iml" />
-      <module fileurl="file://$PROJECT_DIR$/okHttpCat/okHttpCat.iml" filepath="$PROJECT_DIR$/okHttpCat/okHttpCat.iml" />
+      <module fileurl="file://$PROJECT_DIR$/dexlib2/dexlib2.iml" filepath="$PROJECT_DIR$/dexlib2/dexlib2.iml" group="ly-xposed/dexlib2" />
+      <module fileurl="file://$PROJECT_DIR$/encryptstack/encryptstack.iml" filepath="$PROJECT_DIR$/encryptstack/encryptstack.iml" group="ly-xposed/encryptstack" />
+      <module fileurl="file://$PROJECT_DIR$/justTrustMePlush/justTrustMePlush.iml" filepath="$PROJECT_DIR$/justTrustMePlush/justTrustMePlush.iml" group="ly-xposed/justTrustMePlush" />
+      <module fileurl="file://$PROJECT_DIR$/ly-xposed.iml" filepath="$PROJECT_DIR$/ly-xposed.iml" group="ly-xposed" />
+      <module fileurl="file://$PROJECT_DIR$/okHttpCat/okHttpCat.iml" filepath="$PROJECT_DIR$/okHttpCat/okHttpCat.iml" group="ly-xposed/okHttpCat" />
     </modules>
   </component>
 </project>

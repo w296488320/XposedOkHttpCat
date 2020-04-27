@@ -1,1 +1,1 @@
-include ':okHttpCat',':dexlib2', ':encryptstack'
+include ':okHttpCat', ':dexlib2', ':encryptstack', ':justTrustMePlush'

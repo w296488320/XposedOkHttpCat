@@ -24,7 +24,8 @@ import static android.content.ContentValues.TAG;
  */
 public class FileUtils {
 
-    private  static final File sdCardDir = Environment.getExternalStorageDirectory();//获取SDCard目录,2.2的时候为:/mnt/sdcart
+    private static final File sdCardDir = Environment.getExternalStorageDirectory();//获取SDCard目录,2.2的时候为:/mnt/sdcart
+
     /***
      * 调用方式
      *
@@ -39,18 +40,19 @@ public class FileUtils {
     public static void Assets2Sd(Context context, String fileAssetPath, String fileSdPath) {
         //测试把文件直接复制到sd卡中 fileSdPath完整路径
         File file = new File(fileSdPath);
-        if (!file.exists()) {
-            Log.d(TAG, "************文件不存在,文件创建");
-            try {
-                copyBigDataToSD(context, fileAssetPath, fileSdPath);
-                Log.d(TAG, "************拷贝成功");
-            } catch (IOException e) {
-                Log.d(TAG, "************拷贝失败");
-                e.printStackTrace();
-            }
-        } else {
-            Log.d(TAG, "************文件夹存在,文件存在");
+        //存在则删掉 重新导入防止0KB
+        if (file.exists()) {
+            file.delete();
         }
+        Log.d(TAG, "************文件不存在,文件创建");
+        try {
+            copyBigDataToSD(context, fileAssetPath, fileSdPath);
+            Log.d(TAG, "************拷贝成功");
+        } catch (IOException e) {
+            Log.d(TAG, "************拷贝失败");
+            e.printStackTrace();
+        }
+
 
     }
 
