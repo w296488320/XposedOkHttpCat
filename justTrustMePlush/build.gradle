@@ -1,0 +1,75 @@
+apply plugin: 'com.android.application'
+apply plugin: 'stringfog'
+
+
+stringfog {
+    // 这是加解密key，可以自由定义。
+    key 'zhenxi'
+    // 开关
+    enable true
+
+    // 加解密库的实现类路径，需和上面配置的加解密算法库一致。
+    implementation 'com.github.megatronking.stringfog.xor.StringFogImpl'
+    // 指定需加密的代码包路径，可配置多个，未指定将默认全部加密。
+//    fogPackages = ['com.zx.Justmeplush']
+}
+
+
+android {
+    compileSdkVersion 22
+    buildToolsVersion '25.0.2'
+    defaultConfig {
+        applicationId "com.zx.Justmeplush"
+        minSdkVersion 21
+        targetSdkVersion 23
+        versionCode 3
+        versionName "2.1"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+
+
+    lintOptions {
+        checkReleaseBuilds false
+        // Or, if you prefer, you can continue to check for errors in release builds,
+        // but continue the build even when errors are found:
+        abortOnError false
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+
+    signingConfigs {
+        debug {
+            storeFile file("C:/Users/Administrator/Desktop/lyhKey.jks")
+            storePassword 'wcexit'
+            keyAlias 'wcexit'
+            keyPassword 'wcexit'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.android.support:appcompat-v7:22.2.1'
+//    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
+//    testImplementation 'junit:junit:4.12'
+//    androidTestImplementation 'com.android.support.test:runner:1.0.2'
+//    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.2'
+
+    implementation 'com.android.support.constraint:constraint-layout:1.1.3'
+    implementation 'com.android.support:design:22.2.1'
+    provided 'de.robv.android.xposed:api:82'
+
+    // 这里要和上面选用的加解密算法库一致，用于运行时解密。
+    implementation 'com.github.megatronking.stringfog:xor:1.1.0'
+
+}

@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    android:orientation="vertical"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+
+    <LinearLayout
+        android:gravity="center"
+        android:layout_width="match_parent"
+        android:layout_height="50dp">
+
+        <Toolbar
+            android:id="@+id/tb_toolbar"
+            android:background="#1baaf2"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+            <TextView
+                android:textSize="17sp"
+                android:textColor="#fff"
+                android:paddingEnd="20dp"
+                android:text="请选择要进行Hook的app"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+            <CheckBox
+                android:id="@+id/cb_checkbox"
+                android:textSize="13sp"
+                android:layoutDirection="rtl"
+                android:textColor="#fff"
+                android:text="系统app"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"/>
+        </Toolbar>
+
+    </LinearLayout>
+
+    <ListView
+        android:id="@+id/lv_list"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+    </ListView>
+
+</LinearLayout>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:app="http://schemas.android.com/apk/res-auto"
+    >
+
+    <!--<item-->
+        <!--android:title="Add"-->
+        <!--android:icon="@drawable/menu"-->
+        <!--app:showAsAction="ifRoom">-->
+
+        <!--<menu >-->
+            <item
+                app:showAsAction="ifRoom"
+                android:id="@+id/AddQQGroup"
+                android:title="加入QQ群"/>
+    <item
+        app:showAsAction="ifRoom"
+        android:id="@+id/xiaomiquan"
+        android:title="小密圈"/>
+
+            <!--<item-->
+                <!--android:id="@+id/create"-->
+                <!--android:title="@string/createcircle"/>-->
+
+            <!--<item-->
+                <!--android:id="@+id/createcircle"-->
+                <!--android:title="@string/addContacts"-->
+                <!--/>-->
+
+        <!--</menu>-->
+    <!--</item>-->
+
+
+
+</menu>
