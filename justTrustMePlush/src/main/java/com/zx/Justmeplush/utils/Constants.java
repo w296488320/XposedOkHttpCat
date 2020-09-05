@@ -83,7 +83,7 @@ public class Constants {
             Object[] x2 = {op, uid, packageName};
             Method m = c.getDeclaredMethod(method, classes);
             return m.invoke(manager, x2);
-        } catch (Exception e) {
+        } catch (Throwable e) {
             e.printStackTrace();
         }
         return -1;

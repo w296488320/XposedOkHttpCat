@@ -10,7 +10,7 @@ public class CLogUtils {
 	//规定每段显示的长度
 	private static int LOG_MAXLENGTH = 2000;
 
-	private static String TAG = "XposedInto";
+	public static String TAG = "XposedInto";
 
 	public static void e(String msg){
 			if(MainConfig.isDebug) {

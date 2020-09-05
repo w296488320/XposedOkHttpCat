@@ -110,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
         try {
             startActivity(intent);
             return true;
-        } catch (Exception e) {
+        } catch (Throwable e) {
             // 未安装手Q或安装的版本不支持
             return false;
         }
