@@ -1,4 +1,4 @@
-package com.zx.encryptstack.utils;
+package zhenxi.xposedinto.utils;
 
 import android.app.Activity;
 import android.app.ActivityManager;
@@ -159,7 +159,7 @@ public class Constants {
     public static String getSDPath(){
         File sdDir = null;
         boolean sdCardExist = Environment.getExternalStorageState()
-                .equals(Environment.MEDIA_MOUNTED); //判断sd卡是否存在
+                .equals(android.os.Environment.MEDIA_MOUNTED); //判断sd卡是否存在
         if (sdCardExist)
         {
             sdDir = Environment.getExternalStorageDirectory();//获取跟目录

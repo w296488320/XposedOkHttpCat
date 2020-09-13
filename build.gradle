@@ -3,9 +3,14 @@
 buildscript {
     
     repositories {
+        
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven{url 'http://maven.aliyun.com/nexus/content/groups/public/'}
+        maven{ url'http://maven.aliyun.com/nexus/content/repositories/jcenter'}
+
         google()
         jcenter()
-        maven{url 'http://maven.aliyun.com/nexus/content/groups/public/'}
+
 //        maven { url "https://jitpack.io" }
         //google()
         mavenCentral()
@@ -23,9 +28,12 @@ buildscript {
 
 allprojects {
     repositories {
+        maven { url 'https://maven.aliyun.com/repository/google' }
+        maven{url 'http://maven.aliyun.com/nexus/content/groups/public/'}
+        maven{ url'http://maven.aliyun.com/nexus/content/repositories/jcenter'}
+
         google()
         jcenter()
-        maven{url 'http://maven.aliyun.com/nexus/content/groups/public/'}
        // maven { url "https://jitpack.io" }
         //mavenCentral()
     }

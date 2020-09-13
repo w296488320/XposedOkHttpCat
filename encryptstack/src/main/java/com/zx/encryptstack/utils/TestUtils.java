@@ -63,7 +63,7 @@ public class TestUtils {
             }
             return result.toString();
         } catch (Throwable e) {
-            CLogUtils.e("错误 "+e.getMessage());
+            CLogUtils.e("错误 "+e.toString());
             e.printStackTrace();
         }
         return "";

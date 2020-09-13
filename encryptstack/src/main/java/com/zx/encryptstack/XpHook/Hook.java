@@ -78,9 +78,9 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                 CLogUtils.e("发现被Hook App");
                 HookAttach();
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
             e.printStackTrace();
-            CLogUtils.e("Test  Exception  " + e.getMessage());
+            CLogUtils.e("Test  Exception  " + e.toString());
         }
 
     }
@@ -810,7 +810,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 //                }
 //        );
         } catch (Throwable throwable) {
-            CLogUtils.e("发现异常 " + throwable.getMessage());
+            CLogUtils.e("发现异常 " + throwable.toString());
         }
 
     }
@@ -831,8 +831,8 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             sha256_HMAC.init(secret_key);
             byte[] bytes = sha256_HMAC.doFinal(message.getBytes());
             hash = byteArrayToHexString(bytes);
-        } catch (Exception e) {
-            System.out.println("Error HmacSHA256 ===========" + e.getMessage());
+        } catch (Throwable e) {
+            System.out.println("Error HmacSHA256 ===========" + e.toString());
         }
         return hash;
     }
@@ -876,7 +876,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         try {
             mStringBuilder.append("\n");
             throw new Exception("getStackTraceElementException");
-        } catch (Exception e) {
+        } catch (Throwable e) {
             StackTraceElement[] stackTrace = e.getStackTrace();
             mStringBuilder.append(" --------------------------   " + "\n");
             for (StackTraceElement stackTraceElement : stackTrace) {
@@ -894,11 +894,11 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             try {
                 return (byte[]) getEncoded.invoke(IV);
             } catch (IllegalAccessException | InvocationTargetException e) {
-                CLogUtils.e("getEncodedMethodAndInvoke  异常   " + e.getMessage());
+                CLogUtils.e("getEncodedMethodAndInvoke  异常   " + e.toString());
                 e.printStackTrace();
             }
         } catch (NoSuchMethodException e) {
-            CLogUtils.e("NoSuchMethodException  异常   " + e.getMessage());
+            CLogUtils.e("NoSuchMethodException  异常   " + e.toString());
             e.printStackTrace();
             return null;
         }
@@ -913,11 +913,11 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             try {
                 return (byte[]) getEncoded.invoke(arg);
             } catch (IllegalAccessException | InvocationTargetException e) {
-                CLogUtils.e("getEncodedMethodAndInvoke  异常   " + e.getMessage());
+                CLogUtils.e("getEncodedMethodAndInvoke  异常   " + e.toString());
                 e.printStackTrace();
             }
         } catch (NoSuchMethodException e) {
-            CLogUtils.e("NoSuchMethodException  异常   " + e.getMessage());
+            CLogUtils.e("NoSuchMethodException  异常   " + e.toString());
             e.printStackTrace();
         }
         return null;
@@ -934,11 +934,11 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             try {
                 return (String) getEncoded.invoke(arg);
             } catch (IllegalAccessException | InvocationTargetException e) {
-                CLogUtils.e("getEncodedMethodAndInvoke  异常   " + e.getMessage());
+                CLogUtils.e("getEncodedMethodAndInvoke  异常   " + e.toString());
                 e.printStackTrace();
             }
         } catch (NoSuchMethodException e) {
-            CLogUtils.e("NoSuchMethodException  异常   " + e.getMessage());
+            CLogUtils.e("NoSuchMethodException  异常   " + e.toString());
             e.printStackTrace();
         }
         return null;

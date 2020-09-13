@@ -1,4 +1,4 @@
-package com.zx.encryptstack;
+package zhenxi.xposedinto;
 
 import android.Manifest;
 import android.content.Intent;
@@ -7,22 +7,19 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
-import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.os.Bundle;
 import android.widget.CheckBox;
 import android.widget.ListView;
 import android.widget.Toolbar;
 
-import com.zx.encryptstack.Bean.AppBean;
-import com.zx.encryptstack.View.Xiaomiquan;
-import com.zx.encryptstack.adapter.MainListViewAdapter;
-import com.zx.encryptstack.utils.PermissionUtils;
-import com.zx.encryptstack.utils.TestUtils;
-
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 
+import zhenxi.xposedinto.Bean.AppBean;
+import zhenxi.xposedinto.View.Xiaomiquan;
+import zhenxi.xposedinto.adapter.MainListViewAdapter;
+import zhenxi.xposedinto.utils.PermissionUtils;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -41,31 +38,29 @@ public class MainActivity extends AppCompatActivity {
     private MainListViewAdapter mMainListViewAdapter;
 
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-        //TestUtils.getMd5("123");
-
         initData();
         initView();
+
         PermissionUtils.initPermission(this, permissionList);
+
         //test();
     }
 
-//    private void test() {
-//        try {
-//            WifiManager systemService = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
-//            assert systemService != null;
-//            String ssid = systemService.getConnectionInfo().getSSID();
-//        } catch (Throwable e) {
-//            e.printStackTrace();
-//        }
+    private void test() {
+        try {
+            WifiManager systemService = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+            assert systemService != null;
+            String ssid = systemService.getConnectionInfo().getSSID();
+        } catch (Throwable e) {
+            e.printStackTrace();
+        }
 
-//
-//    }
+
+    }
 
     private void initData() {
         mAllPackageList = getPackageList();
@@ -91,8 +86,16 @@ public class MainActivity extends AppCompatActivity {
         mToolbar.inflateMenu(R.menu.main_activity);
 
         mToolbar.setOnMenuItemClickListener(item -> {
-            if (item.getItemId() == R.id.xiaomiquan) {
-                xiaomiquan();
+            switch (item.getItemId()) {
+                case R.id.AddQQGroup:
+                    joinQQGroup();
+                    break;
+                case R.id.xiaomiquan:
+                    xiaomiquan();
+                    break;
+                case R.id.shiyongshuoming:
+
+                    break;
             }
             return false;
         });
@@ -100,12 +103,31 @@ public class MainActivity extends AppCompatActivity {
 
         mLv_list.setAdapter(mMainListViewAdapter);
 
+
     }
 
     private void xiaomiquan() {
         startActivity(new Intent(this, Xiaomiquan.class));
     }
-
+    /****************
+     *
+     * 发起添加群流程。群号：OkHttpCat交流群(828912339) 的 key 为： how_NwAQvL0wiN_DkC5kGPFSJ3BuUKSG
+     * 调用 joinQQGroup(how_NwAQvL0wiN_DkC5kGPFSJ3BuUKSG) 即可发起手Q客户端申请加群 OkHttpCat交流群(828912339)
+     *
+     * @return 返回true表示呼起手Q成功，返回fals表示呼起失败
+     ******************/
+    public boolean joinQQGroup() {
+        Intent intent = new Intent();
+        intent.setData(Uri.parse(this.getString(R.string.joinQQ)));
+        // 此Flag可根据具体产品需要自定义，如设置，则在加群界面按返回，返回手Q主界面，不设置，按返回会返回到呼起产品界面    //intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            startActivity(intent);
+            return true;
+        } catch (Throwable e) {
+            // 未安装手Q或安装的版本不支持
+            return false;
+        }
+    }
 
 
     public ArrayList<AppBean> getPackageList() {

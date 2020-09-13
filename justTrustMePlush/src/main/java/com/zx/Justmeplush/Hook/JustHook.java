@@ -474,7 +474,7 @@ public class JustHook implements IXposedHookLoadPackage {
                 }
             });
         } catch (Throwable e) {
-            CLogUtils.e("SSLContext init error  "+e.getMessage());
+            CLogUtils.e("SSLContext init error  "+e.toString());
 
             e.printStackTrace();
         }
@@ -1058,7 +1058,7 @@ public class JustHook implements IXposedHookLoadPackage {
                 }
             }
         } catch (ClassNotFoundException e) {
-            CLogUtils.e("OkHostnameVerifierClass  ClassNotFoundException  " + e.getMessage());
+            CLogUtils.e("OkHostnameVerifierClass  ClassNotFoundException  " + e.toString());
             e.printStackTrace();
         }
         return null;
@@ -1225,7 +1225,7 @@ public class JustHook implements IXposedHookLoadPackage {
                     return aClass;
                 }
             } catch (ClassNotFoundException e) {
-                CLogUtils.e("getclass 反射类 失败   " + e.getMessage());
+                CLogUtils.e("getclass 反射类 失败   " + e.toString());
                 e.printStackTrace();
             }
         }
@@ -1286,7 +1286,7 @@ public class JustHook implements IXposedHookLoadPackage {
                 return true;
             }
         } catch (Throwable e) {
-            CLogUtils.e("获取 Build error "+e.getMessage());
+            CLogUtils.e("获取 Build error "+e.toString());
             e.printStackTrace();
         }
         return false;
@@ -1360,7 +1360,7 @@ public class JustHook implements IXposedHookLoadPackage {
                         mClassList.add(aClass);
                     }
                 } catch (Throwable e) {
-                    CLogUtils.e("initAllClass  报错 路径实例化类  " + e.getMessage());
+                    CLogUtils.e("initAllClass  报错 路径实例化类  " + e.toString());
                     e.printStackTrace();
                 }
 
@@ -1395,7 +1395,7 @@ public class JustHook implements IXposedHookLoadPackage {
                 HookOkHttpClient();
 
             } catch (Throwable e) {
-                CLogUtils.e("getAllClassNameAndInit error " + e.getMessage());
+                CLogUtils.e("getAllClassNameAndInit error " + e.toString());
                 e.printStackTrace();
             }
         });

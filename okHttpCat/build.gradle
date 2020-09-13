@@ -11,7 +11,6 @@ stringfog {
     // 加解密库的实现类路径，需和上面配置的加解密算法库一致。
     implementation 'com.github.megatronking.stringfog.xor.StringFogImpl'
     // 指定需加密的代码包路径，可配置多个，未指定将默认全部加密。
-//    fogPackages = ['q296488320.xposedinto.XpHook.Hook','q296488320.xposedinto.LogImp.LogInterceptorImp']
 }
 android {
     compileSdkVersion 26
@@ -19,8 +18,8 @@ android {
         applicationId "Xposed.Okhttp.Cat"
         minSdkVersion 21
         targetSdkVersion 21
-        versionCode 3
-        versionName "2.1"
+        versionCode 4
+        versionName "3.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
 

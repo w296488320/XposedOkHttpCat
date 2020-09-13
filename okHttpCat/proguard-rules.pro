@@ -26,7 +26,7 @@
 ## 忽略访问修饰符，配合上一句使用
 -allowaccessmodification
 
--keep public class q296488320.xposedinto.XpHook.Hook
+-keep public class zhenxi.xposedinto.XpHook.Hook
 
 ### 忽略警告
 -ignorewarning

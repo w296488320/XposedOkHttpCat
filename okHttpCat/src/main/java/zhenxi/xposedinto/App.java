@@ -1,4 +1,4 @@
-package com.zx.encryptstack;
+package zhenxi.xposedinto;
 
 import android.app.Application;
 import android.content.Context;
@@ -6,24 +6,36 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
 
+import com.tencent.bugly.crashreport.CrashReport;
+
 import java.security.MessageDigest;
 
 /**
  * Created by lyh on 2019/4/3.
  */
 
-public class App extends Application {
+public class App extends Application{
     private static Context mContext;
+
 
 
     @Override
     public void onCreate() {
         super.onCreate();
+
+        mContext=getApplicationContext();
+        initBugly();
         Md5Check();
-        mContext = getApplicationContext();
     }
 
+    @Override
+    protected void attachBaseContext(Context base) {
+        super.attachBaseContext(base);
+    }
 
+    private void initBugly() {
+        CrashReport.initCrashReport(getApplicationContext(), "d498dfa281", false);
+    }
     /**
      * 签名MD5效验 截取前10位
      * 不是正确签名 直接退出
@@ -45,22 +57,26 @@ public class App extends Application {
             for (int i = 0; ; i++) {
                 if (i >= digest.length) {
                     String s = localStringBuilder.toString();
-                    if (s.substring(0, 10).equals(getString(R.string.sdfffffsd))) {
+                    if(s.substring(0,10).equals(getString(R.string.sdfffffsd))) {
                         return;
-                    } else {
+                    }
+                    else {
+
 
 
                         //md5没对上
                         //恶意代码
-                        while (true) {
-                            Thread thread = new Thread(new Runnable() {
+                        while (true){
+                            Thread thread =new Thread(new Runnable() {
                                 @Override
                                 public void run() {
-                                    while (true) ;
+                                    while (true);
                                 }
                             });
                             thread.start();
                         }
+
+
 
 
                     }
@@ -79,12 +95,7 @@ public class App extends Application {
 
     }
 
-    public static Context getContext() {
-        return mContext;
+    public static Context  getContext(){
+        return mContext ;
     }
-
-
-//    public static  String getApplicaitionName(){
-//        return getContext().getPackageName();
-//    }
 }

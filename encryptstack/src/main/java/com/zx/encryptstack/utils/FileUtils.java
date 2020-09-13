@@ -91,12 +91,12 @@ public class FileUtils {
                     pw.close();
                     fw.close();
                 } catch (IOException e) {
-                    CLogUtils.e("保存 文件出错 "+e.getMessage()+"\n"+str);
+                    CLogUtils.e("保存 文件出错 "+e.toString()+"\n"+str);
                     ToastUtils.showToast(mContext,"请手动 开起本程序读写SD卡权限  算法栈信息 无法保存 ");
                 }
             }
         } catch (IOException e) {
-            CLogUtils.e("保存 文件出错 "+e.getMessage()+"\n"+str);
+            CLogUtils.e("保存 文件出错 "+e.toString()+"\n"+str);
             ToastUtils.showToast(mContext,"请手动 开起本程序读写SD卡权限  算法栈信息 无法保存 ");
         }
     }
