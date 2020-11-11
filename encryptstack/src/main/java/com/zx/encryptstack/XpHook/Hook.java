@@ -5,6 +5,8 @@ import android.app.Application;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.util.Base64;
+import android.view.MotionEvent;
+import android.view.View;
 
 import com.zx.encryptstack.utils.CLogUtils;
 import com.zx.encryptstack.utils.FileUtils;
@@ -43,18 +45,11 @@ import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
-    private final SimpleDateFormat mSimpleDateFormat = new SimpleDateFormat("MM-dd  mm分:ss秒");
     /**
      * 进行 注入的 app 名字
      */
     public static volatile String InvokPackage = null;
-
-    private XSharedPreferences shared;
-
-    private Context mOtherContext;
-    private ClassLoader mLoader;
-
-
+    private final SimpleDateFormat mSimpleDateFormat = new SimpleDateFormat("MM-dd  mm分:ss秒");
     private final String Base64EncodeToString = "encodeToString";
     private final String Base64Encode = "encode";
     private final String Base64Decode = "decode";
@@ -62,13 +57,54 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     private final String Update = "update";
     private final String DoFinal = "doFinal";
     private final String Init = "init";
+    private XSharedPreferences shared;
+    private Context mOtherContext;
+    private ClassLoader mLoader;
     //private final String getBytes = "getBytes";
 
+    /**
+     * sha256_HMAC加密
+     *
+     * @param message 消息
+     * @param secret  秘钥
+     * @return 加密后字符串
+     */
+    public static String sha256_HMAC(String message, String secret) {
+        String hash = "";
+        try {
+            Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
+            SecretKeySpec secret_key = new SecretKeySpec(secret.getBytes(), "HmacSHA256");
+            sha256_HMAC.init(secret_key);
+            byte[] bytes = sha256_HMAC.doFinal(message.getBytes());
+            hash = byteArrayToHexString(bytes);
+        } catch (Throwable e) {
+            System.out.println("Error HmacSHA256 ===========" + e.toString());
+        }
+        return hash;
+    }
+
+    /**
+     * 将加密后的字节数组转换成字符串
+     *
+     * @param b 字节数组
+     * @return 字符串
+     */
+    public static String byteArrayToHexString(byte[] b) {
+        StringBuilder hs = new StringBuilder();
+        String stmp;
+        for (int n = 0; b != null && n < b.length; n++) {
+            stmp = Integer.toHexString(b[n] & 0XFF);
+            if (stmp.length() == 1)
+                hs.append('0');
+            hs.append(stmp);
+        }
+        return hs.toString().toLowerCase();
+    }
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
         try {
-            CLogUtils.e("加载包名 "+lpparam.packageName);
+            CLogUtils.e("加载包名 " + lpparam.packageName);
             shared = new XSharedPreferences("com.zx.encryptstack", "config");
             shared.reload();
             InvokPackage = shared.getString("APP_INFO", "");
@@ -104,7 +140,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         return sb.toString();
     }
 
-
     /**
      * hook  Attach方法
      */
@@ -126,7 +161,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                 });
 
     }
-
 
     private void HookEncrypMethod() {
 
@@ -444,7 +478,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                     append("msgDitest.update(Bytes[])  参数1 16进制 编码 " + bytesToHexString((byte[]) param.args[0])).append("\n");
 
 
-
                             getStackTraceMessage(mStringBuilder);
                             mStringBuilder.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
 
@@ -531,7 +564,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             stringBuffer.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
 
 
-                            FileUtils.SaveString(mOtherContext, stringBuffer.toString().toString(), InvokPackage);
+                            FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
                         }
 
                     }
@@ -560,7 +593,8 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             Object IV = param.args[2];
 
                             //getAlgorithm
-                            stringBuffer.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("  加密初始化(CBC 模式  三个 参数   需要  IV)    方法名字   " + Init + "\n").
+                            stringBuffer.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm))
+                                    .append("  加密初始化(CBC 模式  三个 参数   需要  IV)    方法名字   " + Init + "\n").
                                     append(mSimpleDateFormat.format(new Date())).append("\n").
                                     append(param.thisObject != null ? param.thisObject.getClass().getName() : "").append(".").append(Init).append("\n");
 
@@ -768,23 +802,217 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                     }
             );
 
+
             //new JsonObject();
-            XposedHelpers.findAndHookConstructor(JSONObject.class, String.class, new XC_MethodHook() {
-                @Override
-                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    super.afterHookedMethod(param);
-                    StringBuilder mStringBuilder = new StringBuilder("JsonObject 构造方法 " + "\n");
-                    if (param.thisObject != null) {
-                        String json = ((JSONObject) param.thisObject).toString();
-                        mStringBuilder.append("Json 内容 :  ").append(json).append("\n");
-                        mStringBuilder.append("Json 十六进制编码   :  ").append(bytesToHexString(json.getBytes())).append("\n\n");
+            try {
+                try {
+                    XposedHelpers.findAndHookConstructor(JSONObject.class, String.class, new XC_MethodHook() {
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                            super.afterHookedMethod(param);
+                            StringBuilder mStringBuilder = new StringBuilder("Json字符串 JsonObject 构造方法 " + "\n");
+                            if (param.thisObject != null) {
+                                String json = ((JSONObject) param.thisObject).toString();
+                                mStringBuilder.append("Json 内容 :  ").append(json).append("\n");
+                                mStringBuilder.append("Json 十六进制编码   : ").append(bytesToHexString(json.getBytes())).append("\n\n");
 
-                        getStackTraceMessage(mStringBuilder);
+                                getStackTraceMessage(mStringBuilder);
 
-                        FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
-                    }
+                                FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                            }
+                        }
+                    });
+                } catch (Throwable e) {
+                    CLogUtils.e("Hook JSONObject 构造error  "+e.getMessage());
+                    e.printStackTrace();
                 }
-            });
+
+                try {
+                    XposedHelpers.findAndHookMethod(JSONObject.class,
+                            "toString",
+                            new XC_MethodHook() {
+                        @Override
+                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                            super.afterHookedMethod(param);
+                            StringBuilder mStringBuilder = new StringBuilder("Json字符串 JsonObject.toString " + "\n");
+                            if (param.thisObject != null) {
+                                String json = ((JSONObject) param.thisObject).toString();
+                                mStringBuilder.append("Json 内容 :  ").append(json).append("\n");
+                                mStringBuilder.append("Json 十六进制编码   :  ").append(bytesToHexString(json.getBytes())).append("\n\n");
+
+                                getStackTraceMessage(mStringBuilder);
+
+                                FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                            }
+                        }
+                    });
+                } catch (Throwable e) {
+                    CLogUtils.e("Hook JSONObject toString  error  "+e.getMessage());
+                    e.printStackTrace();
+                }
+
+
+            } catch (Throwable e) {
+                CLogUtils.e("Hook JSONObject error " + e);
+                e.printStackTrace();
+            }
+            Class<?> Gson = null;
+            try {
+                Gson = XposedHelpers.findClass("com.google.gson.Gson", mLoader);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            if (Gson != null) {
+                //Gson->gson.fromJson(jsonString, c);
+                //将一个Json字符串,转换成一个对象的方法
+                try {
+                    XposedHelpers.findAndHookMethod(
+                            Gson, "fromJson", String.class,
+                            Class.class,
+                            new XC_MethodHook() {
+                                @Override
+                                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                                    super.afterHookedMethod(param);
+                                    StringBuilder mStringBuilder = new StringBuilder("Json字符串 Gson->gson.fromJson(jsonString, c) " + "\n");
+                                    String json = (String) param.args[0];
+                                    mStringBuilder.append(json).append("\n");
+                                    mStringBuilder.append("参数2的Class名字  ").append(((Class) param.args[1]).getName()).append("\n");
+                                    getStackTraceMessage(mStringBuilder);
+                                    FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                                }
+                            }
+                    );
+
+                    XposedHelpers.findAndHookMethod(
+                            Gson, "toJson", Object.class, new XC_MethodHook() {
+                                @Override
+                                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                                    super.afterHookedMethod(param);
+                                    StringBuilder mStringBuilder = new StringBuilder("Json字符串 Gson->toJson(Object) " + "\n");
+                                    mStringBuilder.append((String) param.getResult()).append("\n");
+                                    mStringBuilder.append("参数1的Class名字  ").append(((Class) param.args[1]).getName()).append("\n");
+                                    getStackTraceMessage(mStringBuilder);
+                                    FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                                }
+                            }
+                    );
+                } catch (Throwable e) {
+                    CLogUtils.e("Hook Gson error " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }
+
+//            XposedHelpers.findAndHookMethod(View.class, "onTouchEvent", MotionEvent.class, new XC_MethodHook() {
+//                @Override
+//                protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+//                    super.afterHookedMethod(param);
+//                    CLogUtils.e(param.args[0].toString());
+//                }
+//            });
+
+            Class<?> JSON = null;
+            try {
+                JSON = XposedHelpers.findClass("com.alibaba.fastjson.JSON", mLoader);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            if (JSON != null) {
+                //fastJson
+                //public static final Object parse(String text); // 把JSON文本parse为JSONObject或者JSONArray
+                XposedHelpers.findAndHookMethod(JSON, "parse", String .class, new XC_MethodHook() {
+                            @Override
+                            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                                super.afterHookedMethod(param);
+                                StringBuilder mStringBuilder = new StringBuilder("Json字符串 FastJson  JSON->parse(String) " + "\n");
+                                mStringBuilder.append("参数1 ").append((String) param.args[0]).append("\n");
+                                mStringBuilder.append("返回内存类名 ").append(param.getResult().getClass().getName()).append("\n");
+
+                                getStackTraceMessage(mStringBuilder);
+                                FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+
+                            }
+                        }
+                );
+                //public static final JSONObject parseObject(String text)； // 把JSON文本parse成JSONObject
+                XposedHelpers.findAndHookMethod(JSON, "parseObject", String.class, new XC_MethodHook() {
+                            @Override
+                            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                                super.afterHookedMethod(param);
+                                StringBuilder mStringBuilder = new StringBuilder("Json字符串 FastJson  JSON->parseObject(String) " + "\n");
+                                mStringBuilder.append("参数1 ").append((String) param.args[0]).append("\n");
+                                mStringBuilder.append("返回内容 ").append(param.getResult().toString()).append("\n");
+
+                                getStackTraceMessage(mStringBuilder);
+                                FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+
+                            }
+                        }
+                );
+                //public static final String toJSONString(Object object); // 将JavaBean序列化为JSON文本
+                XposedHelpers.findAndHookMethod(JSON, "toJSONString", Object .class, new XC_MethodHook() {
+                            @Override
+                            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                                super.afterHookedMethod(param);
+                                StringBuilder mStringBuilder = new StringBuilder("Json字符串 FastJson  JSON->toJSONString(Object) " + "\n");
+                                mStringBuilder.append("返回内容 ").append(param.getResult().toString()).append("\n");
+                                mStringBuilder.append("参数1名字  ").append(param.args[0].getClass().getName()).append("\n");
+
+                                getStackTraceMessage(mStringBuilder);
+                                FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+
+                            }
+                        }
+                );
+            }
+            //JockJson
+            Class<?> Jackson = null;
+            try {
+                Jackson = XposedHelpers.findClass("com.fasterxml.jackson.databind.ObjectMapper", mLoader);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            if(Jackson!=null){
+                try {
+                    XposedHelpers.findAndHookMethod(Jackson, "writeValueAsString", Object.class, new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            super.beforeHookedMethod(param);
+                            StringBuilder mStringBuilder = new StringBuilder("Json字符串 Jackson  ObjectMapper->writeValueAsString(Object) " + "\n");
+                            mStringBuilder.append("返回内容 ").append(param.getResult().toString()).append("\n");
+                            mStringBuilder.append("参数1名字  ").append(param.args[0].getClass().getName()).append("\n");
+
+                            getStackTraceMessage(mStringBuilder);
+                            FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                        }
+                    });
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+                try {
+                    XposedHelpers.findAndHookMethod(Jackson,
+                            "readValue",
+                            String.class,
+                            Class.class,
+                            new XC_MethodHook() {
+                        @Override
+                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                            super.beforeHookedMethod(param);
+                            StringBuilder mStringBuilder = new StringBuilder("Json字符串 Jackson  ObjectMapper->readValue(String content, Class<T> valueType) " + "\n");
+                            mStringBuilder.append("参数1内容  ").append(param.args[0].toString()).append("\n");
+                            mStringBuilder.append("参数2类名  ").append(param.args[1].getClass().getName()).append("\n");
+
+
+                            getStackTraceMessage(mStringBuilder);
+                            FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                        }
+                    });
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
 
 
             //byte[] bytes = "".getBytes();
@@ -815,50 +1043,9 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
     }
 
-
-    /**
-     * sha256_HMAC加密
-     *
-     * @param message 消息
-     * @param secret  秘钥
-     * @return 加密后字符串
-     */
-    public static String sha256_HMAC(String message, String secret) {
-        String hash = "";
-        try {
-            Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secret_key = new SecretKeySpec(secret.getBytes(), "HmacSHA256");
-            sha256_HMAC.init(secret_key);
-            byte[] bytes = sha256_HMAC.doFinal(message.getBytes());
-            hash = byteArrayToHexString(bytes);
-        } catch (Throwable e) {
-            System.out.println("Error HmacSHA256 ===========" + e.toString());
-        }
-        return hash;
-    }
-
-    /**
-     * 将加密后的字节数组转换成字符串
-     *
-     * @param b 字节数组
-     * @return 字符串
-     */
-    public static String byteArrayToHexString(byte[] b) {
-        StringBuilder hs = new StringBuilder();
-        String stmp;
-        for (int n = 0; b != null && n < b.length; n++) {
-            stmp = Integer.toHexString(b[n] & 0XFF);
-            if (stmp.length() == 1)
-                hs.append('0');
-            hs.append(stmp);
-        }
-        return hs.toString().toLowerCase();
-    }
-
-
     @NonNull
     private StringBuilder getMd5(byte[] result2) {
-        StringBuilder result1 = new StringBuilder("");
+        StringBuilder result1 = new StringBuilder();
         if (result2 == null || result2.length == 0) {
             return result1;
         }
