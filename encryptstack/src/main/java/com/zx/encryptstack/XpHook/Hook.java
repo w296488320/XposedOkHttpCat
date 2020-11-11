@@ -261,9 +261,14 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             StringBuffer stringBuffer = new StringBuffer(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
 
                             String mStringBuilder = Base64Decode + "    方法名字   Base64." + Base64Decode + "   \n" +
-                                    mSimpleDateFormat.format(new Date()) + "\n"
-                                    + param.thisObject != null ? param.thisObject.getClass().getName() : "" + "." + Base64Decode + "\n" +
-                                    "参数 1  U8编码 " + new String(bytes, StandardCharsets.UTF_8) + "\n";
+                                    mSimpleDateFormat.format(new Date()) + "\n";
+                                    if(param.thisObject!=null){
+                                        mStringBuilder=mStringBuilder+param.thisObject.getClass().getName()+"\n";
+                                    }else {
+                                        mStringBuilder=mStringBuilder+"" + "." + Base64Decode+"\n";
+                                    }
+                            mStringBuilder = mStringBuilder+ "参数 1  U8编码 " + new String(bytes, StandardCharsets.UTF_8) + "\n";
+
                             stringBuffer.append(mStringBuilder);
                             FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
 
@@ -827,29 +832,29 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                     e.printStackTrace();
                 }
 
-                try {
-                    XposedHelpers.findAndHookMethod(JSONObject.class,
-                            "toString",
-                            new XC_MethodHook() {
-                        @Override
-                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                            super.afterHookedMethod(param);
-                            StringBuilder mStringBuilder = new StringBuilder("Json字符串 JsonObject.toString " + "\n");
-                            if (param.thisObject != null) {
-                                String json = ((JSONObject) param.thisObject).toString();
-                                mStringBuilder.append("Json 内容 :  ").append(json).append("\n");
-                                mStringBuilder.append("Json 十六进制编码   :  ").append(bytesToHexString(json.getBytes())).append("\n\n");
-
-                                getStackTraceMessage(mStringBuilder);
-
-                                FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
-                            }
-                        }
-                    });
-                } catch (Throwable e) {
-                    CLogUtils.e("Hook JSONObject toString  error  "+e.getMessage());
-                    e.printStackTrace();
-                }
+//                try {
+//                    XposedHelpers.findAndHookMethod(JSONObject.class,
+//                            "toString",
+//                            new XC_MethodHook() {
+//                        @Override
+//                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+//                            super.afterHookedMethod(param);
+//                            StringBuilder mStringBuilder = new StringBuilder("Json字符串 JsonObject.toString " + "\n");
+//                            if (param.thisObject != null) {
+//                                String json = ((JSONObject) param.thisObject).;
+//                                mStringBuilder.append("Json 内容 :  ").append(json).append("\n");
+//                                mStringBuilder.append("Json 十六进制编码   :  ").append(bytesToHexString(json.getBytes())).append("\n\n");
+//
+//                                getStackTraceMessage(mStringBuilder);
+//
+//                                FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+//                            }
+//                        }
+//                    });
+//                } catch (Throwable e) {
+//                    CLogUtils.e("Hook JSONObject toString  error  "+e.getMessage());
+//                    e.printStackTrace();
+//                }
 
 
             } catch (Throwable e) {
@@ -890,7 +895,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                     super.afterHookedMethod(param);
                                     StringBuilder mStringBuilder = new StringBuilder("Json字符串 Gson->toJson(Object) " + "\n");
                                     mStringBuilder.append((String) param.getResult()).append("\n");
-                                    mStringBuilder.append("参数1的Class名字  ").append(((Class) param.args[1]).getName()).append("\n");
+                                    mStringBuilder.append("参数1的Class名字  ").append((param.args[0]).getClass().getName()).append("\n");
                                     getStackTraceMessage(mStringBuilder);
                                     FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
                                 }
