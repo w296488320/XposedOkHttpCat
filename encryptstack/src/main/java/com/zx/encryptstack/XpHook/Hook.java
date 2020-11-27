@@ -13,6 +13,7 @@ import com.zx.encryptstack.utils.FileUtils;
 
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
@@ -26,7 +27,10 @@ import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
@@ -35,6 +39,7 @@ import javax.crypto.spec.SecretKeySpec;
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XSharedPreferences;
+import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
@@ -49,7 +54,10 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
      * 进行 注入的 app 名字
      */
     public static volatile String InvokPackage = null;
-    private final SimpleDateFormat mSimpleDateFormat = new SimpleDateFormat("MM-dd  mm分:ss秒");
+    //只当前进程使用
+    private final SimpleDateFormat mSimpleDateFormat =
+            new SimpleDateFormat("MM-dd  MM分:ss秒", Locale.getDefault());
+
     private final String Base64EncodeToString = "encodeToString";
     private final String Base64Encode = "encode";
     private final String Base64Decode = "decode";
@@ -57,55 +65,17 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     private final String Update = "update";
     private final String DoFinal = "doFinal";
     private final String Init = "init";
-    private XSharedPreferences shared;
     private Context mOtherContext;
     private ClassLoader mLoader;
     //private final String getBytes = "getBytes";
 
-    /**
-     * sha256_HMAC加密
-     *
-     * @param message 消息
-     * @param secret  秘钥
-     * @return 加密后字符串
-     */
-    public static String sha256_HMAC(String message, String secret) {
-        String hash = "";
-        try {
-            Mac sha256_HMAC = Mac.getInstance("HmacSHA256");
-            SecretKeySpec secret_key = new SecretKeySpec(secret.getBytes(), "HmacSHA256");
-            sha256_HMAC.init(secret_key);
-            byte[] bytes = sha256_HMAC.doFinal(message.getBytes());
-            hash = byteArrayToHexString(bytes);
-        } catch (Throwable e) {
-            System.out.println("Error HmacSHA256 ===========" + e.toString());
-        }
-        return hash;
-    }
 
-    /**
-     * 将加密后的字节数组转换成字符串
-     *
-     * @param b 字节数组
-     * @return 字符串
-     */
-    public static String byteArrayToHexString(byte[] b) {
-        StringBuilder hs = new StringBuilder();
-        String stmp;
-        for (int n = 0; b != null && n < b.length; n++) {
-            stmp = Integer.toHexString(b[n] & 0XFF);
-            if (stmp.length() == 1)
-                hs.append('0');
-            hs.append(stmp);
-        }
-        return hs.toString().toLowerCase();
-    }
 
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
         try {
             CLogUtils.e("加载包名 " + lpparam.packageName);
-            shared = new XSharedPreferences("com.zx.encryptstack", "config");
+            XSharedPreferences shared = new XSharedPreferences("com.zx.encryptstack", "config");
             shared.reload();
             InvokPackage = shared.getString("APP_INFO", "");
 
@@ -175,15 +145,15 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                             super.beforeHookedMethod(param);
                             byte[] bytes = (byte[]) param.args[0];
-                            StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
-                            stringBuffer.append(Base64EncodeToString + "方法名字   Base64." + Base64EncodeToString + "\n");
-                            stringBuffer.append("时间  ").append(mSimpleDateFormat.format(new Date())).append("\n");
-                            stringBuffer.append(param.thisObject != null ? param.thisObject.getClass().getName() : "").append(Base64EncodeToString).append("\n");
-                            stringBuffer.append(Base64EncodeToString + "参数1 U8编码是   ").append(new String(bytes, StandardCharsets.UTF_8)).append("\n");
-                            stringBuffer.append(Base64EncodeToString + "参数1 的 16进制是  ").append(bytesToHexString(bytes));
 
 
-                            FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
+                            String stringBuilder = ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>" + "\n" +
+                                    Base64EncodeToString + "方法名字   Base64." + Base64EncodeToString + "\n" +
+                                    "时间  " + mSimpleDateFormat.format(new Date()) + "\n" +
+                                    (param.thisObject != null ? param.thisObject.getClass().getName() : "") + Base64EncodeToString + "\n" +
+                                    Base64EncodeToString + "参数1 U8编码是   " + new String(bytes, StandardCharsets.UTF_8) + "\n" +
+                                    Base64EncodeToString + "参数1 的 16进制是  " + bytesToHexString(bytes);
+                            FileUtils.SaveString(mOtherContext, stringBuilder, InvokPackage);
 
                         }
 
@@ -215,7 +185,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                             super.beforeHookedMethod(param);
                             byte[] bytes = (byte[]) param.args[0];
-                            StringBuffer stringBuffer = new StringBuffer(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                            StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
 
                             String mStringBuilder = Base64Encode + "方法名字   Base64." + Base64Encode + "\n" +
                                     mSimpleDateFormat.format(new Date()) + "\n" +
@@ -258,7 +228,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             super.beforeHookedMethod(param);
 
                             byte[] bytes = (byte[]) param.args[0];
-                            StringBuffer stringBuffer = new StringBuffer(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                            StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
 
                             String mStringBuilder = Base64Decode + "    方法名字   Base64." + Base64Decode + "   \n" +
                                     mSimpleDateFormat.format(new Date()) + "\n";
@@ -305,7 +275,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         @Override
                         protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                             super.beforeHookedMethod(param);
-                            StringBuffer stringBuffer = new StringBuffer(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                            StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
                             String bytes = param.args[0].toString();
                             stringBuffer.append("    方法名字   Base64." + Base64Decode + "   \n").
                                     append(mSimpleDateFormat.format(new Date())).append("\n");
@@ -353,7 +323,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             //加密 类型
                             MessageDigest thisObject = (MessageDigest) param.thisObject;
                             String algorithm = thisObject.getAlgorithm();
-                            StringBuffer stringBuffer = new StringBuffer(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                            StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
                             String mStringBuilder = Md5Digest + "    名字   " + algorithm + "加密 " + Md5Digest + "   \n" +
                                     mSimpleDateFormat.format(new Date()) + "\n" +
                                     param.thisObject != null ? param.thisObject.getClass().getName() : "" + "." + Md5Digest + "\n" +
@@ -399,7 +369,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                             super.beforeHookedMethod(param);
 
-                            StringBuffer stringBuffer = new StringBuffer(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                            StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
 
                             //加密 类型
                             MessageDigest thisObject = (MessageDigest) param.thisObject;
@@ -456,7 +426,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             //加密 类型
                             MessageDigest thisObject = (MessageDigest) param.thisObject;
                             String algorithm = thisObject.getAlgorithm();
-                            StringBuffer stringBuffer = new StringBuffer(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                            StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
 
                             String mStringBuilder = Md5Digest + "    名字   " + algorithm + "加密 " + Update + "   \n" +
                                     mSimpleDateFormat.format(new Date()) + "\n" +
@@ -479,8 +449,8 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             mStringBuilder.append("\n");
                             mStringBuilder.append("MessageDigest  类型").append(algorithm).append("\n").
                                     append("MessageDigest   toString ").append(msgDitest.toString()).append("\n").
-                                    append("msgDitest.update(Bytes[])  参数1 U8编码 " + new String((byte[]) param.args[0], StandardCharsets.UTF_8)).append("\n").
-                                    append("msgDitest.update(Bytes[])  参数1 16进制 编码 " + bytesToHexString((byte[]) param.args[0])).append("\n");
+                                    append("msgDitest.update(Bytes[])  参数1 U8编码 ").append(new String((byte[]) param.args[0], StandardCharsets.UTF_8)).append("\n").
+                                    append("msgDitest.update(Bytes[])  参数1 16进制 编码 ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
 
 
                             getStackTraceMessage(mStringBuilder);
@@ -502,7 +472,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                             super.beforeHookedMethod(param);
                             byte[] bytes = (byte[]) param.args[0];
-                            StringBuffer stringBuffer = new StringBuffer(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                            StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
 
                             String mStringBuilder = DoFinal + "    方法名字   " + DoFinal + "   \n" +
                                     mSimpleDateFormat.format(new Date()) + "\n" +
@@ -881,7 +851,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                     StringBuilder mStringBuilder = new StringBuilder("Json字符串 Gson->gson.fromJson(jsonString, c) " + "\n");
                                     String json = (String) param.args[0];
                                     mStringBuilder.append(json).append("\n");
-                                    mStringBuilder.append("参数2的Class名字  ").append(((Class) param.args[1]).getName()).append("\n");
+                                    mStringBuilder.append("参数2的Class名字  ").append(param.args[1].getClass().getName()).append("\n");
                                     getStackTraceMessage(mStringBuilder);
                                     FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
                                 }
@@ -980,9 +950,11 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             if(Jackson!=null){
                 try {
                     XposedHelpers.findAndHookMethod(Jackson, "writeValueAsString", Object.class, new XC_MethodHook() {
+
+
                         @Override
-                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                            super.beforeHookedMethod(param);
+                        protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                            super.afterHookedMethod(param);
                             StringBuilder mStringBuilder = new StringBuilder("Json字符串 Jackson  ObjectMapper->writeValueAsString(Object) " + "\n");
                             mStringBuilder.append("返回内容 ").append(param.getResult().toString()).append("\n");
                             mStringBuilder.append("参数1名字  ").append(param.args[0].getClass().getName()).append("\n");
@@ -1018,6 +990,57 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                 }
             }
 
+            //Gzip压缩相关,很多网络请求是Gzip压缩的在传输的过程中存在数据加密的情况
+
+            //GZIPOutputStream.class
+            try {
+                //GZIPOutputStream->write 将压缩字节流写进去时候进行拦截
+                XposedHelpers.findAndHookMethod(GZIPOutputStream.class,
+                        "write",
+                        byte[].class,
+                        int.class,
+                        new XC_MethodHook() {
+                            @Override
+                            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                                super.beforeHookedMethod(param);
+
+                                StringBuilder mStringBuilder = new StringBuilder("GZIPOutputStream->write(byte[],int,int)").append("\n");
+                                mStringBuilder.append("参数1 byte[] U8编码内容 ").append(new String((byte[]) param.args[0],
+                                        StandardCharsets.UTF_8)).append("\n");
+                                mStringBuilder.append("参数1类名 16进制编码 ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
+                                getStackTraceMessage(mStringBuilder);
+                                FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+
+                            }
+                        });
+
+
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
+
+
+            //ByteArrayOutputStream 输出流的Hook
+            try {
+                //GZIPOutputStream->write 将压缩字节流写进去时候进行拦截
+                XposedHelpers.findAndHookMethod(ByteArrayOutputStream .class,
+                        "toString",
+                        String.class,
+                        new XC_MethodHook() {
+
+                            @Override
+                            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                                super.afterHookedMethod(param);
+                                StringBuilder mStringBuilder = new StringBuilder("ByteArrayOutputStream->toString(String)").append("\n");
+                                mStringBuilder.append("返回结果  ").append((String) param.getResult()).append("\n");
+                                getStackTraceMessage(mStringBuilder);
+                                FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                            }
+                        });
+
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
 
 
             //byte[] bytes = "".getBytes();
