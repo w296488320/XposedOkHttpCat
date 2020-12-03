@@ -60,13 +60,13 @@ android {
 
     signingConfigs {
         debug {
-            storeFile file("C:/Users/Administrator/Desktop/lyhKey.jks")
+            storeFile file("E:/AndroidKey/lyhKey.jks")
             storePassword 'wcexit'
             keyAlias 'wcexit'
             keyPassword 'wcexit'
         }
         release {
-            storeFile file("C:/Users/Administrator/Desktop/lyhKey.jks")
+            storeFile file("E:/AndroidKey/lyhKey.jks")
             storePassword 'wcexit'
             keyAlias 'wcexit'
             keyPassword 'wcexit'
