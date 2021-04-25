@@ -18,6 +18,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.security.AlgorithmParameters;
@@ -96,7 +97,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
      * @param bArr 数据
      */
     private String bytesToHexString(byte[] bArr) {
-        if(bArr==null){
+        if (bArr == null) {
             return "";
         }
         StringBuilder sb = new StringBuilder(bArr.length);
@@ -249,7 +250,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         }
                 );
             } catch (Throwable e) {
-                CLogUtils.e("Hook Base64.decode(String,int); error "+e.getMessage());
+                CLogUtils.e("Hook Base64.decode(String,int); error " + e.getMessage());
                 e.printStackTrace();
             }
 
@@ -287,7 +288,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         }
                 );
             } catch (Throwable e) {
-                CLogUtils.e("Hook  md5.digest(string.getBytes()); error "+e.getMessage());
+                CLogUtils.e("Hook  md5.digest(string.getBytes()); error " + e.getMessage());
                 e.printStackTrace();
             }
 
@@ -323,7 +324,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         }
                 );
             } catch (Throwable e) {
-                CLogUtils.e("Hook  md5.digest(); error "+e);
+                CLogUtils.e("Hook  md5.digest(); error " + e);
                 e.printStackTrace();
             }
 
@@ -345,9 +346,9 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                 String algorithm = msgDitest.getAlgorithm();
                                 mStringBuilder.append("\n");
                                 mStringBuilder.append("MessageDigest  类型").append(algorithm).append("\n").
-                                append("MessageDigest   toString ").append(msgDitest.toString()).append("\n").
-                                append("msgDitest.update(Bytes[])  参数1 U8编码 ").append(getStr((byte[]) param.args[0])).append("\n").
-                                append("msgDitest.update(Bytes[])  参数1 16进制 编码 ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
+                                        append("MessageDigest   toString ").append(msgDitest.toString()).append("\n").
+                                        append("msgDitest.update(Bytes[])  参数1 U8编码 ").append(getStr((byte[]) param.args[0])).append("\n").
+                                        append("msgDitest.update(Bytes[])  参数1 16进制 编码 ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
 
 
                                 getStackTraceMessage(mStringBuilder);
@@ -357,7 +358,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         }
                 );
             } catch (Throwable e) {
-                CLogUtils.e("Hook msgDitest.update(Bytes[]); error "+e);
+                CLogUtils.e("Hook msgDitest.update(Bytes[]); error " + e);
                 e.printStackTrace();
             }
 
@@ -384,7 +385,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
                                 mStringBuilder.append("\n");
                                 byte[] Result = (byte[]) param.getResult();
-                                if(param.thisObject instanceof  Mac){
+                                if (param.thisObject instanceof Mac) {
                                     Mac thisObject = (Mac) param.thisObject;
                                     mStringBuilder.append("Mac->doFinal加密类型 ").append(thisObject.getAlgorithm()).append("\n");
                                 }
@@ -401,7 +402,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         }
                 );
             } catch (Throwable e) {
-                CLogUtils.e("Hook HmacSHA1算法 cipher.doFinal(Byte[]); error "+e);
+                CLogUtils.e("Hook HmacSHA1算法 cipher.doFinal(Byte[]); error " + e);
                 e.printStackTrace();
             }
 
@@ -433,7 +434,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         }
                 );
             } catch (Throwable e) {
-                CLogUtils.e("Hook public SecretKeySpec(byte[] key, String algorithm) error "+e.getMessage());
+                CLogUtils.e("Hook public SecretKeySpec(byte[] key, String algorithm) error " + e.getMessage());
                 e.printStackTrace();
             }
             //构造体1:  SecretKeySpec(byte[] key, int offset, int len, String algorithm)
@@ -464,7 +465,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         }
                 );
             } catch (Throwable e) {
-                CLogUtils.e("Hook public SecretKeySpec(byte[] key, String algorithm) error "+e.getMessage());
+                CLogUtils.e("Hook public SecretKeySpec(byte[] key, String algorithm) error " + e.getMessage());
                 e.printStackTrace();
             }
 
@@ -472,17 +473,15 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             // 核心方法
             //byte[] cipher.doFinal(Byte[]);
             try {
-                XposedHelpers.findAndHookMethod(Cipher.class, DoFinal,
-                        byte[].class,
+                XposedBridge.hookAllMethods(Cipher.class, DoFinal,
                         new XC_MethodHook() {
-
                             @Override
                             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                                 super.afterHookedMethod(param);
                                 StringBuilder mStringBuilder = new StringBuilder(DoFinal);
                                 mStringBuilder.append("\n");
 
-                                if(param.thisObject instanceof Cipher){
+                                if (param.thisObject instanceof Cipher) {
                                     Cipher thisObject = (Cipher) param.thisObject;
                                     mStringBuilder.append("Cipher->doFinal(Byte[]) cipher 加密类型 ").append(thisObject.getAlgorithm()).append("\n");
                                     //默认Iv == null
@@ -491,7 +490,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                     try {
                                         iv = thisObject.getIV();
                                         //将IV打印
-                                        if(iv!=null){
+                                        if (iv != null) {
                                             mStringBuilder.append("byte[] cipher.doFinal(Byte[]) IV内容打印  U8编码  ").append(new String(iv, StandardCharsets.UTF_8)).append("\n");
                                             mStringBuilder.append("byte[] cipher.doFinal(Byte[]) IV内容打印  16进制编码  ").append(bytesToHexString(iv)).append("\n");
                                         }
@@ -500,12 +499,78 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                     }
                                 }
 
+                                //这块有四种构造方法,分别进行处理
+                                if (param.args.length > 0) {
+
+                                    if (param.args.length == 1) {
+                                        if (param.args[0] instanceof byte[]) {
+                                            mStringBuilder.append("byte[] cipher.doFinal(Byte[]) 参数1 U8编码  ").append(getStr((byte[]) param.args[0])).append("\n");
+                                            mStringBuilder.append("byte[] cipher.doFinal(Byte[]) 参数1 16进制编码  ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
+                                        }
+                                    }
+                                    if (param.args.length == 2) {
+                                        if (param.args[0] instanceof byte[]) {
+                                            mStringBuilder.append("cipher.doFinal(byte[] output, int outputOffset) 参数1 U8编码  ").append(getStr((byte[]) param.args[0])).append("\n");
+                                            mStringBuilder.append("cipher.doFinal(byte[] output, int outputOffset) 参数1 16进制编码  ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
+                                        }
+                                        mStringBuilder.append("cipher.doFinal(byte[] output, int outputOffset) 参数2  ").append(param.args[1]).append("\n");
+                                    }
+                                    if(param.args.length ==3){
+                                        if (param.args[0] instanceof byte[]) {
+                                            mStringBuilder.append("doFinal(byte[] input, int inputOffset, int inputLen) 参数1 U8编码  ").append(getStr((byte[]) param.args[0])).append("\n");
+                                            mStringBuilder.append("doFinal(byte[] input, int inputOffset, int inputLen) 参数1 16进制编码  ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
+                                        }
+                                        mStringBuilder.append("doFinal(byte[] input, int inputOffset, int inputLen) 参数2  ").append(param.args[1]).append("\n");
+                                        mStringBuilder.append("doFinal(byte[] input, int inputOffset, int inputLen) 参数3  ").append(param.args[2]).append("\n");
+                                    }
+
+                                    if(param.args.length ==4){
+                                        if (param.args[0] instanceof byte[]) {
+                                            mStringBuilder.append("doFinal(byte[] input, int inputOffset, int inputLen, byte[] output) 参数1 U8编码  ").append(getStr((byte[]) param.args[0])).append("\n");
+                                            mStringBuilder.append("doFinal(byte[] input, int inputOffset, int inputLen, byte[] output) 参数1 16进制编码  ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
+                                        }
+                                        mStringBuilder.append("doFinal(byte[] input, int inputOffset, int inputLen, byte[] output) 参数2  ").append(param.args[1]).append("\n");
+                                        mStringBuilder.append("doFinal(byte[] input, int inputOffset, int inputLen, byte[] output) 参数3  ").append(param.args[2]).append("\n");
+
+                                        mStringBuilder.append("doFinal(byte[] input, int inputOffset, int inputLen, byte[] output) 参数4 U8编码  ").append(getStr((byte[]) param.args[3])).append("\n");
+                                        mStringBuilder.append("doFinal(byte[] input, int inputOffset, int inputLen, byte[] output) 参数4 16进制编码  ").append(bytesToHexString((byte[]) param.args[3])).append("\n");
+                                    }
+                                    if(param.args.length ==5){
+                                        if (param.args[0] instanceof byte[]) {
+                                            mStringBuilder.append("doFinal(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) 参数1 U8编码  ").append(getStr((byte[]) param.args[0])).append("\n");
+                                            mStringBuilder.append("doFinal(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) 参数1 16进制编码  ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
+                                        }
+                                        mStringBuilder.append("doFinal(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) 参数2  ").append(param.args[1]).append("\n");
+                                        mStringBuilder.append("doFinal(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) 参数3  ").append(param.args[2]).append("\n");
+
+                                        mStringBuilder.append("doFinal(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) 参数4 U8编码  ").append(getStr((byte[]) param.args[3])).append("\n");
+                                        mStringBuilder.append("doFinal(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) 参数4 16进制编码  ").append(bytesToHexString((byte[]) param.args[3])).append("\n");
+
+
+                                        mStringBuilder.append("doFinal(byte[] input, int inputOffset, int inputLen, byte[] output, int outputOffset) 参数5   ").append(param.args[4]).append("\n");
+                                    }
+                                    if(param.args[0] instanceof ByteBuffer && param.args[1] instanceof ByteBuffer){
+                                        ByteBuffer arg1 = (ByteBuffer) param.args[0];
+                                        ByteBuffer arg2 = (ByteBuffer) param.args[1];
+                                        byte[] array1 = arg1.array();
+                                        byte[] array2 = arg2.array();
+
+                                        mStringBuilder.append("doFinal(ByteBuffer input, ByteBuffer output) 参数1 array函数  U8编码").append(getStr(array1)).append("\n");
+                                        mStringBuilder.append("doFinal(ByteBuffer input, ByteBuffer output) 参数1 array函数  16进制编码").append(bytesToHexString(array1)).append("\n");
+
+                                        mStringBuilder.append("doFinal(ByteBuffer input, ByteBuffer output) 参数2   array函数").append(getStr(array2)).append("\n");
+                                        mStringBuilder.append("doFinal(ByteBuffer input, ByteBuffer output) 参数2   array函数").append(bytesToHexString(array2)).append("\n");
+
+                                        mStringBuilder.append("doFinal(ByteBuffer input, ByteBuffer output) 参数1 toString").append(arg1.toString()).append("\n");
+                                        mStringBuilder.append("doFinal(ByteBuffer input, ByteBuffer output) 参数2 toString").append(arg2.toString()).append("\n");
+
+                                    }
+                                }
+
                                 byte[] Result = (byte[]) param.getResult();
-                                if(Result!=null) {
-                                    mStringBuilder.append("byte[] cipher.doFinal(Byte[]) 参数1 U8编码  ").append(getStr((byte[]) param.args[0])).append("\n");
-                                    mStringBuilder.append("byte[] cipher.doFinal(Byte[]) 参数1 16进制编码  ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
-                                    mStringBuilder.append("byte[] cipher.doFinal(Byte[])  加密  16进制   返回结果  ").append(bytesToHexString(Result)).append("\n");
-                                    mStringBuilder.append("byte[] cipher.doFinal(Byte[])  加密  U8编码    返回结果  ").append(new String(Result, StandardCharsets.UTF_8)).append("\n");
+                                if (Result != null) {
+                                    mStringBuilder.append("byte[] cipher.doFinal  返回结果  ").append(bytesToHexString(Result)).append("\n");
+                                    mStringBuilder.append("byte[] cipher.doFinal  返回结果  ").append(new String(Result, StandardCharsets.UTF_8)).append("\n");
                                 }
                                 getStackTraceMessage(mStringBuilder);
 
@@ -515,7 +580,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         }
                 );
             } catch (Throwable e) {
-                CLogUtils.e("Hook cipher.doFinal(Byte[]); error "+e);
+                CLogUtils.e("Hook cipher.doFinal(Byte[]); error " + e);
                 e.printStackTrace();
             }
 
@@ -559,7 +624,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         }
                 );
             } catch (Throwable e) {
-                CLogUtils.e("Hook cipher.init(Cipher.ENCRYPT_MODE, skeySpec); error "+e);
+                CLogUtils.e("Hook cipher.init(Cipher.ENCRYPT_MODE, skeySpec); error " + e);
                 e.printStackTrace();
             }
 
@@ -614,7 +679,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         }
                 );
             } catch (Throwable e) {
-                CLogUtils.e("Hook cipher.init(Cipher.ENCRYPT_MODE, skeySpec,IvParameterSpec); error "+e.getMessage());
+                CLogUtils.e("Hook cipher.init(Cipher.ENCRYPT_MODE, skeySpec,IvParameterSpec); error " + e.getMessage());
                 e.printStackTrace();
             }
 
@@ -667,7 +732,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         }
                 );
             } catch (Throwable e) {
-                CLogUtils.e("Hook cipher.init(Cipher.ENCRYPT_MODE, skeySpec,IvParameterSpec); error "+e);
+                CLogUtils.e("Hook cipher.init(Cipher.ENCRYPT_MODE, skeySpec,IvParameterSpec); error " + e);
                 e.printStackTrace();
             }
 
@@ -715,7 +780,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         }
                 );
             } catch (Throwable e) {
-                CLogUtils.e("Hook cipher.init(Cipher.ENCRYPT_MODE, skeySpec,AlgorithmParameterSpec ) error "+e.getMessage());
+                CLogUtils.e("Hook cipher.init(Cipher.ENCRYPT_MODE, skeySpec,AlgorithmParameterSpec ) error " + e.getMessage());
                 e.printStackTrace();
             }
 
@@ -763,7 +828,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         }
                 );
             } catch (Throwable e) {
-                CLogUtils.e("Hook cipher.init(Cipher.ENCRYPT_MODE, skeySpec,AlgorithmParameterSpec,SecureRandom) error "+e);
+                CLogUtils.e("Hook cipher.init(Cipher.ENCRYPT_MODE, skeySpec,AlgorithmParameterSpec,SecureRandom) error " + e);
                 e.printStackTrace();
             }
 
@@ -811,7 +876,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         }
                 );
             } catch (Throwable e) {
-                CLogUtils.e("Hook cipher.init(Cipher.ENCRYPT_MODE, skeySpec,SecureRandom) error "+e);
+                CLogUtils.e("Hook cipher.init(Cipher.ENCRYPT_MODE, skeySpec,SecureRandom) error " + e);
                 e.printStackTrace();
             }
 
@@ -955,7 +1020,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             }
                     );
                 } catch (Throwable e) {
-                    CLogUtils.e("Hook fastjson.JSON->parse error  "+e.getMessage());
+                    CLogUtils.e("Hook fastjson.JSON->parse error  " + e.getMessage());
                     e.printStackTrace();
                 }
                 //public static final JSONObject parseObject(String text)； // 把JSON文本parse成JSONObject
@@ -975,7 +1040,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             }
                     );
                 } catch (Throwable e) {
-                    CLogUtils.e("Hook fastjson.JSON->parseObject error  "+e.getMessage());
+                    CLogUtils.e("Hook fastjson.JSON->parseObject error  " + e.getMessage());
 
                     e.printStackTrace();
                 }
@@ -996,7 +1061,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             }
                     );
                 } catch (Throwable e) {
-                    CLogUtils.e("Hook fastjson.JSON->toJSONString error  "+e.getMessage());
+                    CLogUtils.e("Hook fastjson.JSON->toJSONString error  " + e.getMessage());
 
                     e.printStackTrace();
                 }
@@ -1006,7 +1071,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             try {
                 Jackson = XposedHelpers.findClass("com.fasterxml.jackson.databind.ObjectMapper", mLoader);
             } catch (Throwable e) {
-                Jackson=null;
+                Jackson = null;
                 e.printStackTrace();
             }
             if (Jackson != null) {
@@ -1026,7 +1091,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         }
                     });
                 } catch (Throwable e) {
-                    CLogUtils.e("Hook Jackson->writeValueAsString error  "+e.getMessage());
+                    CLogUtils.e("Hook Jackson->writeValueAsString error  " + e.getMessage());
                     e.printStackTrace();
                 }
 
@@ -1049,7 +1114,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                 }
                             });
                 } catch (Throwable e) {
-                    CLogUtils.e("Hook Jackson->readValue error  "+e.getMessage());
+                    CLogUtils.e("Hook Jackson->readValue error  " + e.getMessage());
                     e.printStackTrace();
                 }
             }
@@ -1138,21 +1203,20 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     }
 
 
-
     @NonNull
     private String getStr(byte[] arg) {
-        if(arg==null){
+        if (arg == null) {
             return "";
         }
-        return new String(arg,StandardCharsets.UTF_8);
+        return new String(arg, StandardCharsets.UTF_8);
     }
 
     @NonNull
     private String getStr(Object arg) {
-        if(arg==null){
+        if (arg == null) {
             return "";
         }
-        if(arg instanceof byte[]){
+        if (arg instanceof byte[]) {
             return new String((byte[]) arg,
                     StandardCharsets.UTF_8);
         }
@@ -1248,11 +1312,11 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         return null;
     }
 
-    public String getString(byte[] bytes){
-        if(bytes==null){
+    public String getString(byte[] bytes) {
+        if (bytes == null) {
             return "";
         }
-        return new String(bytes,StandardCharsets.UTF_8);
+        return new String(bytes, StandardCharsets.UTF_8);
 
     }
 
