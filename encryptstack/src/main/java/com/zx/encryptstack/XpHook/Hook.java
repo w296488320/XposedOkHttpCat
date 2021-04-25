@@ -73,7 +73,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     @Override
     public void handleLoadPackage(XC_LoadPackage.LoadPackageParam lpparam) {
         try {
-            CLogUtils.e("加载包名 " + lpparam.packageName);
+            //CLogUtils.e("加载包名 " + lpparam.packageName);
             XSharedPreferences shared = new XSharedPreferences("com.zx.encryptstack", "config");
             shared.reload();
             InvokPackage = shared.getString("APP_INFO", "");
@@ -96,6 +96,9 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
      * @param bArr 数据
      */
     private String bytesToHexString(byte[] bArr) {
+        if(bArr==null){
+            return "";
+        }
         StringBuilder sb = new StringBuilder(bArr.length);
         String sTmp;
 
@@ -123,7 +126,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         mOtherContext = (Context) param.args[0];
                         mLoader = mOtherContext.getClassLoader();
                         HookEncrypMethod();
-
                     }
                 });
 
@@ -148,7 +150,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                 mStringBuilder.append("\n");
                                 String Result = param.getResult().toString();
                                 mStringBuilder.append(Base64EncodeToString + "返回结果   ").append(Result).append("\n").
-                                        append("Base64.encodeToString(byte[],int)  返回结果 参数1 U8编码是 ").append(new String((byte[]) param.args[0], StandardCharsets.UTF_8)).append("\n").
+                                        append("Base64.encodeToString(byte[],int)  返回结果 参数1 U8编码是 ").append(getStr((byte[]) param.args[0])).append("\n").
                                         append("Base64.encodeToString(byte[],int)  返回结果 参数1 16进制编码是 ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
 
                                 getStackTraceMessage(mStringBuilder);
@@ -207,7 +209,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
                                 byte[] Result = (byte[]) param.getResult();
                                 mStringBuilder.append("返回结果  U8编码 ").append(new String(Result, StandardCharsets.UTF_8)).append("\n").
-                                        append("加密之前的 内容 Base64.decode(byte[],int); 参数1  U8编码内容  ").append(new String((byte[]) param.args[0], StandardCharsets.UTF_8)).append("\n");
+                                        append("加密之前的 内容 Base64.decode(byte[],int); 参数1  U8编码内容  ").append(getStr((byte[]) param.args[0])).append("\n");
                                 mStringBuilder.append("返回结果十六进制编码 ").append(bytesToHexString(Result));
 
                                 getStackTraceMessage(mStringBuilder);
@@ -275,7 +277,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                 mStringBuilder.append("MessageDigest 类型  ").append(algorithm).append("\n").
                                         append(" 返回结果  ").append(result).append("\n").
                                         append("MessageDigest digest  toString 返回结果 ").append(msgDitest.toString()).append("\n").
-                                        append("加密之前 参数1  U8编码 ").append(new String((byte[]) param.args[0], StandardCharsets.UTF_8)).append("\n").
+                                        append("加密之前 参数1  U8编码 ").append(getStr((byte[]) param.args[0])).append("\n").
                                         append("加密之前 参数1  16进制编码 ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
 
                                 getStackTraceMessage(mStringBuilder);
@@ -343,9 +345,9 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                 String algorithm = msgDitest.getAlgorithm();
                                 mStringBuilder.append("\n");
                                 mStringBuilder.append("MessageDigest  类型").append(algorithm).append("\n").
-                                        append("MessageDigest   toString ").append(msgDitest.toString()).append("\n").
-                                        append("msgDitest.update(Bytes[])  参数1 U8编码 ").append(new String((byte[]) param.args[0], StandardCharsets.UTF_8)).append("\n").
-                                        append("msgDitest.update(Bytes[])  参数1 16进制 编码 ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
+                                append("MessageDigest   toString ").append(msgDitest.toString()).append("\n").
+                                append("msgDitest.update(Bytes[])  参数1 U8编码 ").append(getStr((byte[]) param.args[0])).append("\n").
+                                append("msgDitest.update(Bytes[])  参数1 16进制 编码 ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
 
 
                                 getStackTraceMessage(mStringBuilder);
@@ -359,11 +361,19 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                 e.printStackTrace();
             }
 
+//         MAC（Message Authentication Code，消息认证码算法）是含有密钥散列函数算法，兼容
+//         了MD和SHA算法的特性，并在此基础上加入了密钥。因此，我们也常把MAC称为HMAC
+//         (keyed-Hash Message Authentication Code)
+//         类似如下
 
-            // 这个方法AES或者 RSA都有可能用
-            //byte[] cipher.doFinal(Byte[]);
+//            Mac instance = Mac.getInstance("c");
+//            instance.init(new SecretKeySpec("Tb6yTwgSEvbLgLtguw21Q80dR8atTLZ9gbOyX3m9FB0FMGWI60SALA==".
+//                    getBytes(), instance.getAlgorithm()));
+//            return Base64.encodeToString(instance.doFinal(bArr), 2);
+
+            //HmacSHA1算法
             try {
-                XposedHelpers.findAndHookMethod(Cipher.class, DoFinal,
+                XposedHelpers.findAndHookMethod(Mac.class, "doFinal",
                         byte[].class,
                         new XC_MethodHook() {
 
@@ -374,11 +384,129 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
                                 mStringBuilder.append("\n");
                                 byte[] Result = (byte[]) param.getResult();
-                                mStringBuilder.append("byte[] cipher.doFinal(Byte[]) 参数1 U8编码  ").append(new String((byte[]) param.args[0], StandardCharsets.UTF_8)).append("\n");
-                                mStringBuilder.append("byte[] cipher.doFinal(Byte[]) 参数1 16进制编码  ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
-                                mStringBuilder.append("byte[] cipher.doFinal(Byte[])  加密  16进制   返回结果  ").append(bytesToHexString(Result)).append("\n");
-                                mStringBuilder.append("byte[] cipher.doFinal(Byte[])  加密  U8编码    返回结果  ").append(new String(Result, StandardCharsets.UTF_8)).append("\n");
+                                if(param.thisObject instanceof  Mac){
+                                    Mac thisObject = (Mac) param.thisObject;
+                                    mStringBuilder.append("Mac->doFinal加密类型 ").append(thisObject.getAlgorithm()).append("\n");
+                                }
+                                mStringBuilder.append("byte[] Mac.doFinal(Byte[]) 参数1 U8编码  ").append(getStr((byte[]) param.args[0])).append("\n");
+                                mStringBuilder.append("byte[] Mac.doFinal(Byte[]) 参数1 16进制编码  ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
+                                mStringBuilder.append("byte[] Mac.doFinal(Byte[])  加密  16进制   返回结果  ").append(bytesToHexString(Result)).append("\n");
+                                mStringBuilder.append("byte[] Mac.doFinal(Byte[])  加密  U8编码    返回结果  ").append(new String(Result, StandardCharsets.UTF_8)).append("\n");
 
+                                getStackTraceMessage(mStringBuilder);
+
+                                FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+
+                            }
+                        }
+                );
+            } catch (Throwable e) {
+                CLogUtils.e("Hook HmacSHA1算法 cipher.doFinal(Byte[]); error "+e);
+                e.printStackTrace();
+            }
+
+
+            //SecretKeySpec构造方法
+            //这个类保存了一些重要的Key 我们在他初始化完毕以后进行dump
+            //构造体1:  public SecretKeySpec(byte[] key, String algorithm)
+
+            try {
+                XposedHelpers.findAndHookConstructor(
+                        SecretKeySpec.class,
+                        byte[].class,
+                        String.class,
+                        new XC_MethodHook() {
+                            @Override
+                            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                                super.afterHookedMethod(param);
+                                StringBuilder mStringBuilder = new StringBuilder("SecretKeySpec(byte[] key, String algorithm)");
+
+                                mStringBuilder.append("\n");
+                                mStringBuilder.append("SecretKeySpec(byte[] key, String algorithm) 参数1 U8编码  ").append(getStr((byte[]) param.args[0])).append("\n");
+                                mStringBuilder.append("SecretKeySpec(byte[] key, String algorithm) 参数1 16进制编码  ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
+                                mStringBuilder.append("SecretKeySpec(byte[] key, String algorithm) 参数2  ").append((String) param.args[1]).append("\n");
+
+                                getStackTraceMessage(mStringBuilder);
+
+                                FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                            }
+                        }
+                );
+            } catch (Throwable e) {
+                CLogUtils.e("Hook public SecretKeySpec(byte[] key, String algorithm) error "+e.getMessage());
+                e.printStackTrace();
+            }
+            //构造体1:  SecretKeySpec(byte[] key, int offset, int len, String algorithm)
+            try {
+                XposedHelpers.findAndHookConstructor(
+                        SecretKeySpec.class,
+                        byte[].class,
+                        int.class,
+                        int.class,
+                        String.class,
+                        new XC_MethodHook() {
+                            @Override
+                            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                                super.afterHookedMethod(param);
+                                StringBuilder mStringBuilder = new StringBuilder("SecretKeySpec(byte[] key, int offset, int len, String algorithm)");
+
+                                mStringBuilder.append("\n");
+                                mStringBuilder.append("SecretKeySpec(byte[] key, int offset, int len, String algorithm) 参数1 U8编码  ").append(getStr((byte[]) param.args[0])).append("\n");
+                                mStringBuilder.append("SecretKeySpec(byte[] key, int offset, int len, String algorithm) 参数1 16进制编码  ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
+                                mStringBuilder.append("SecretKeySpec(byte[] key, int offset, int len, String algorithm) 参数2  ").append((int) param.args[1]).append("\n");
+                                mStringBuilder.append("SecretKeySpec(byte[] key, int offset, int len, String algorithm) 参数3  ").append((int) param.args[2]).append("\n");
+                                mStringBuilder.append("SecretKeySpec(byte[] key, int offset, int len, String algorithm) 参数4  ").append(param.args[3]).append("\n");
+
+                                getStackTraceMessage(mStringBuilder);
+
+                                FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                            }
+                        }
+                );
+            } catch (Throwable e) {
+                CLogUtils.e("Hook public SecretKeySpec(byte[] key, String algorithm) error "+e.getMessage());
+                e.printStackTrace();
+            }
+
+            // 这个方法AES或者 RSA都有可能用
+            // 核心方法
+            //byte[] cipher.doFinal(Byte[]);
+            try {
+                XposedHelpers.findAndHookMethod(Cipher.class, DoFinal,
+                        byte[].class,
+                        new XC_MethodHook() {
+
+                            @Override
+                            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                                super.afterHookedMethod(param);
+                                StringBuilder mStringBuilder = new StringBuilder(DoFinal);
+                                mStringBuilder.append("\n");
+
+                                if(param.thisObject instanceof Cipher){
+                                    Cipher thisObject = (Cipher) param.thisObject;
+                                    mStringBuilder.append("Cipher->doFinal(Byte[]) cipher 加密类型 ").append(thisObject.getAlgorithm()).append("\n");
+                                    //默认Iv == null
+                                    byte[] iv;
+                                    //尝试获取IV 可能会抛异常
+                                    try {
+                                        iv = thisObject.getIV();
+                                        //将IV打印
+                                        if(iv!=null){
+                                            mStringBuilder.append("byte[] cipher.doFinal(Byte[]) IV内容打印  U8编码  ").append(new String(iv, StandardCharsets.UTF_8)).append("\n");
+                                            mStringBuilder.append("byte[] cipher.doFinal(Byte[]) IV内容打印  16进制编码  ").append(bytesToHexString(iv)).append("\n");
+                                        }
+                                    } catch (Throwable e) {
+                                        e.printStackTrace();
+                                    }
+                                }
+
+                                byte[] Result = (byte[]) param.getResult();
+                                if(Result!=null) {
+                                    mStringBuilder.append("byte[] cipher.doFinal(Byte[]) 参数1 U8编码  ").append(getStr((byte[]) param.args[0])).append("\n");
+                                    mStringBuilder.append("byte[] cipher.doFinal(Byte[]) 参数1 16进制编码  ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
+                                    mStringBuilder.append("byte[] cipher.doFinal(Byte[])  加密  16进制   返回结果  ").append(bytesToHexString(Result)).append("\n");
+                                    mStringBuilder.append("byte[] cipher.doFinal(Byte[])  加密  U8编码    返回结果  ").append(new String(Result, StandardCharsets.UTF_8)).append("\n");
+                                }
                                 getStackTraceMessage(mStringBuilder);
 
                                 FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
@@ -402,13 +530,14 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             @Override
                             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                                 super.beforeHookedMethod(param);
-                                StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                                StringBuilder stringBuffer = new StringBuilder("两个参数 cipher.init(Cipher.ENCRYPT_MODE, skeySpec) 不需要IV").append("\n");
 
                                 stringBuffer.append("两个参数 cipher.init(Cipher.ENCRYPT_MODE, skeySpec) 不需要IV").append("\n");
 
 
                                 //这个方法 主要是 拿到 私钥
                                 Object Key = param.args[1];
+
                                 String algorithm = getAlgorithm(Key);
 
                                 stringBuffer.append(algorithm == null ? "未找到  加密方式 " : ("       " + algorithm)).append("   加密初始化(ECB 模式)    方法名字   " + Init + "\n").
@@ -422,7 +551,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                     stringBuffer.append("私钥的 16 进制  编码    ").append(bytesToHexString(encodedMethodAndInvoke)).append("\n");
                                 }
                                 getStackTraceMessage(stringBuffer);
-                                stringBuffer.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
 
 
                                 FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
@@ -449,7 +577,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             @Override
                             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                                 super.beforeHookedMethod(param);
-                                StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                                StringBuilder stringBuffer = new StringBuilder("三个参数 需要 IV  cipher.init(Cipher.ENCRYPT_MODE, skeySpec,IvParameterSpec)").append("\n");
                                 stringBuffer.append("三个参数 需要 IV  cipher.init(Cipher.ENCRYPT_MODE, skeySpec,IvParameterSpec) ").append("\n");
 
                                 //CLogUtils.e("参数 类型 int   key   AlgorithmParameters");
@@ -477,7 +605,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                 }
 
                                 getStackTraceMessage(stringBuffer);
-                                stringBuffer.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
 
 
                                 FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
@@ -504,7 +631,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             @Override
                             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                                 super.beforeHookedMethod(param);
-                                StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                                StringBuilder stringBuffer = new StringBuilder().append("\n");
                                 stringBuffer.append("cipher.init(Cipher.ENCRYPT_MODE, skeySpec,IvParameterSpec) ").append("\n");
 
                                 CLogUtils.e("参数 类型 int   key   AlgorithmParameters   SecureRandom");
@@ -532,7 +659,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                 }
 
                                 getStackTraceMessage(stringBuffer);
-                                stringBuffer.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
 
                                 FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
 
@@ -556,7 +682,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             @Override
                             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                                 super.beforeHookedMethod(param);
-                                StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                                StringBuilder stringBuffer = new StringBuilder("").append("\n");
                                 stringBuffer.append("cipher.init(Cipher.ENCRYPT_MODE, skeySpec,AlgorithmParameterSpec ) ").append("\n");
 
                                 //CLogUtils.e("参数 类型 int   key   AlgorithmParameterSpec  ");
@@ -604,7 +730,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             @Override
                             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                                 super.beforeHookedMethod(param);
-                                StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                                StringBuilder stringBuffer = new StringBuilder().append("\n");
                                 stringBuffer.append("cipher.init(Cipher.ENCRYPT_MODE, skeySpec,AlgorithmParameterSpec,SecureRandom) ").append("\n");
 
                                 //CLogUtils.e("参数 类型 int   key   AlgorithmParameterSpec SecureRandom ");
@@ -629,7 +755,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                     stringBuffer.append("IV 的 16 进制  编码    ").append(bytesToHexString(getIvFieldAndIvoke)).append("\n");
                                 }
                                 getStackTraceMessage(stringBuffer);
-                                stringBuffer.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
 
                                 FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
 
@@ -653,7 +778,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             @Override
                             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                                 super.beforeHookedMethod(param);
-                                StringBuilder stringBuffer = new StringBuilder(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>").append("\n");
+                                StringBuilder stringBuffer = new StringBuilder("").append("\n");
                                 stringBuffer.append("cipher.init(Cipher.ENCRYPT_MODE, skeySpec,SecureRandom) ").append("\n");
 
                                 //CLogUtils.e("参数 类型 int   key    SecureRandom ");
@@ -678,7 +803,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                     stringBuffer.append("IV 的 16 进制  编码    ").append(bytesToHexString(getIvFieldAndIvoke)).append("\n");
                                 }
                                 getStackTraceMessage(stringBuffer);
-                                stringBuffer.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
 
                                 FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
 
@@ -882,6 +1006,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             try {
                 Jackson = XposedHelpers.findClass("com.fasterxml.jackson.databind.ObjectMapper", mLoader);
             } catch (Throwable e) {
+                Jackson=null;
                 e.printStackTrace();
             }
             if (Jackson != null) {
@@ -944,8 +1069,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                 super.beforeHookedMethod(param);
 
                                 StringBuilder mStringBuilder = new StringBuilder("GZIPOutputStream->write(byte[],int,int)").append("\n");
-                                mStringBuilder.append("参数1 byte[] U8编码内容 ").append(new String((byte[]) param.args[0],
-                                        StandardCharsets.UTF_8)).append("\n");
+                                mStringBuilder.append("参数1 byte[] U8编码内容 ").append(getStr(param.args[0])).append("\n");
                                 mStringBuilder.append("参数1类名 16进制编码 ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
                                 getStackTraceMessage(mStringBuilder);
                                 FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
@@ -1008,10 +1132,33 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 //        );
             CLogUtils.e("Encryptstack Hook 执行完毕 ");
         } catch (Throwable throwable) {
-            CLogUtils.e("发现异常 " + throwable.toString());
+            CLogUtils.e("Encryptstack 发现异常 " + throwable.toString());
         }
 
     }
+
+
+
+    @NonNull
+    private String getStr(byte[] arg) {
+        if(arg==null){
+            return "";
+        }
+        return new String(arg,StandardCharsets.UTF_8);
+    }
+
+    @NonNull
+    private String getStr(Object arg) {
+        if(arg==null){
+            return "";
+        }
+        if(arg instanceof byte[]){
+            return new String((byte[]) arg,
+                    StandardCharsets.UTF_8);
+        }
+        return "";
+    }
+
 
     @NonNull
     private StringBuilder getMd5(byte[] result2) {
@@ -1101,6 +1248,13 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
         return null;
     }
 
+    public String getString(byte[] bytes){
+        if(bytes==null){
+            return "";
+        }
+        return new String(bytes,StandardCharsets.UTF_8);
+
+    }
 
     /**
      * 获得当前进程的名字

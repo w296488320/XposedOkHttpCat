@@ -58,6 +58,10 @@ public class AES {
         }
         return hs.toString().toLowerCase();
     }
+
+
+
+    public static String IV="0102030405060708";
     /**
      * 加密
      * @param content
@@ -69,7 +73,7 @@ public class AES {
         SecretKeySpec skeySpec = getKey(strKey);
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
         //IV 随机数
-        IvParameterSpec iv = new IvParameterSpec("0102030405060708".getBytes());
+        IvParameterSpec iv = new IvParameterSpec(IV.getBytes());
         cipher.init(Cipher.ENCRYPT_MODE, skeySpec, iv);
         byte[] encrypted = cipher.doFinal(content.getBytes());
         return  encrypted;
