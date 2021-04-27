@@ -177,11 +177,10 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                 mStringBuilder.append("\n");
                                 byte[] Result = (byte[]) param.getResult();
 
-                                mStringBuilder.append(Base64Encode + "返回结果   U8编码 ").append(new String(Result, StandardCharsets.UTF_8)).append("\n");
-                                mStringBuilder.append(Base64Encode + "返回结果   16进制 编码 ").append(bytesToHexString(Result)).append("\n");
+                                mStringBuilder.append( "byte[] encode = Base64.encode(); 返回结果   U8编码 ").append(new String(Result, StandardCharsets.UTF_8)).append("\n");
+                                mStringBuilder.append( "byte[] encode = Base64.encode(); 返回结果   16进制 编码 ").append(bytesToHexString(Result)).append("\n");
 
                                 getStackTraceMessage(mStringBuilder);
-                                mStringBuilder.append("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<").append("\n\n\n\n\n");
 
                                 FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
                             }
@@ -214,7 +213,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                 mStringBuilder.append("返回结果十六进制编码 ").append(bytesToHexString(Result));
 
                                 getStackTraceMessage(mStringBuilder);
-
                                 FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
                             }
                         }
@@ -244,7 +242,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                         append("加密之前的 内容 Base64.decode(String,int); 参数1内容  ").append(param.args[0].toString()).append("\n");
 
                                 getStackTraceMessage(mStringBuilder);
-
                                 FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
                             }
                         }
@@ -257,15 +254,18 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
             //MD5 和 sha-1
             //byte[] bytes = md5.digest(string.getBytes());
+
+            // public byte[] digest(byte[] input)
             try {
                 XposedHelpers.findAndHookMethod(MessageDigest.class, Md5Digest,
                         byte[].class,
+
                         new XC_MethodHook() {
 
                             @Override
                             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                                 super.afterHookedMethod(param);
-                                StringBuilder mStringBuilder = new StringBuilder("md5.digest(string.getBytes());");
+                                StringBuilder mStringBuilder = new StringBuilder("MessageDigest->public byte[] digest(byte[] input);");
 
                                 MessageDigest msgDitest = (MessageDigest) param.thisObject;
 
@@ -282,7 +282,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                         append("加密之前 参数1  16进制编码 ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
 
                                 getStackTraceMessage(mStringBuilder);
-
                                 FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
                             }
                         }
@@ -302,7 +301,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             @Override
                             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                                 super.afterHookedMethod(param);
-                                StringBuilder mStringBuilder = new StringBuilder("md5.digest();");
+                                StringBuilder mStringBuilder = new StringBuilder("MessageDigest->public byte[] digest();");
 
                                 MessageDigest msgDitest = (MessageDigest) param.thisObject;
 
@@ -318,7 +317,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                         append("MessageDigest   toString 返回结果 ").append(msgDitest.toString()).append("\n");
 
                                 getStackTraceMessage(mStringBuilder);
-
                                 FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
                             }
                         }
@@ -331,6 +329,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
 //            MessageDigest msgDitest = MessageDigest.getInstance("SHA-1");
 //            msgDitest.update(Bytes[]);
+
             try {
                 XposedHelpers.findAndHookMethod(MessageDigest.class, Update,
                         byte[].class,
@@ -339,7 +338,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             @Override
                             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                                 super.afterHookedMethod(param);
-                                StringBuilder mStringBuilder = new StringBuilder("msgDitest.update(Bytes[]) 无返回结果");
+                                StringBuilder mStringBuilder = new StringBuilder("MessageDigest->update(byte[] input) 无返回结果");
 
                                 MessageDigest msgDitest = (MessageDigest) param.thisObject;
 
@@ -352,13 +351,84 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
 
                                 getStackTraceMessage(mStringBuilder);
-
                                 FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
                             }
                         }
                 );
+
             } catch (Throwable e) {
-                CLogUtils.e("Hook msgDitest.update(Bytes[]); error " + e);
+                CLogUtils.e("MessageDigest->update(Bytes[]) 无返回结果 " + e);
+                e.printStackTrace();
+            }
+
+//            MessageDigest msgDitest = MessageDigest.getInstance("SHA-1");
+//            msgDitest.update(Bytes);
+            try {
+                XposedHelpers.findAndHookMethod(MessageDigest.class, Update,
+                        byte[].class,
+                        int.class,
+                        int.class,
+                        new XC_MethodHook() {
+
+                            @Override
+                            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                                super.afterHookedMethod(param);
+                                StringBuilder mStringBuilder = new StringBuilder("MessageDigest->update(byte[] input, int offset, int len)");
+
+                                MessageDigest msgDitest = (MessageDigest) param.thisObject;
+
+                                String algorithm = msgDitest.getAlgorithm();
+                                mStringBuilder.append("\n");
+                                mStringBuilder.append("MessageDigest  类型").append(algorithm).append("\n").
+                                        append("MessageDigest   toString ").append(msgDitest.toString()).append("\n").
+                                        append("msgDitest.update(Bytes[])  参数1 U8编码 ").append(getStr((byte[]) param.args[0])).append("\n").
+                                        append("msgDitest.update(Bytes[])  参数1 16进制 编码 ").append(bytesToHexString((byte[]) param.args[0])).append("\n").
+                                        append("msgDitest.update(Bytes[])  参数2 int (offset)内容 ").append(param.args[1]).append("\n").
+                                        append("msgDitest.update(Bytes[])  参数3 int (len)内容 ").append(param.args[2]).append("\n");
+
+
+                                getStackTraceMessage(mStringBuilder);
+                                FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                            }
+                        }
+                );
+
+            } catch (Throwable e) {
+                CLogUtils.e("MessageDigest->update(byte[] input, int offset, int len)无返回结果 " + e);
+                e.printStackTrace();
+            }
+            //public final void update(ByteBuffer input)
+            try {
+                XposedHelpers.findAndHookMethod(MessageDigest.class, Update,
+                        ByteBuffer.class,
+                        new XC_MethodHook() {
+
+                            @Override
+                            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                                super.afterHookedMethod(param);
+                                StringBuilder mStringBuilder = new StringBuilder("MessageDigest->update(ByteBuffer input)");
+
+                                MessageDigest msgDitest = (MessageDigest) param.thisObject;
+
+                                String algorithm = msgDitest.getAlgorithm();
+                                mStringBuilder.append("\n");
+
+                                ByteBuffer arg1 = (ByteBuffer) param.args[0];
+
+                                mStringBuilder.append("MessageDigest  类型").append(algorithm).append("\n").
+                                        append("MessageDigest   toString ").append(msgDitest.toString()).append("\n").
+                                        append("msgDitest.update(ByteBuffer)  参数1 asCharBuffer ").append(arg1.asCharBuffer()).append("\n").
+                                        append("msgDitest.update(ByteBuffer)  参数1 array 方法 16进制编码 ").append(bytesToHexString(arg1.array())).append("\n");
+
+
+                                getStackTraceMessage(mStringBuilder);
+                                FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                            }
+                        }
+                );
+
+            } catch (Throwable e) {
+                CLogUtils.e("MessageDigest->update(ByteBuffer input)无返回结果 " + e);
                 e.printStackTrace();
             }
 
@@ -395,7 +465,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                 mStringBuilder.append("byte[] Mac.doFinal(Byte[])  加密  U8编码    返回结果  ").append(new String(Result, StandardCharsets.UTF_8)).append("\n");
 
                                 getStackTraceMessage(mStringBuilder);
-
                                 FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
 
                             }
@@ -428,7 +497,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                 mStringBuilder.append("SecretKeySpec(byte[] key, String algorithm) 参数2  ").append((String) param.args[1]).append("\n");
 
                                 getStackTraceMessage(mStringBuilder);
-
                                 FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
                             }
                         }
@@ -459,7 +527,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                 mStringBuilder.append("SecretKeySpec(byte[] key, int offset, int len, String algorithm) 参数4  ").append(param.args[3]).append("\n");
 
                                 getStackTraceMessage(mStringBuilder);
-
                                 FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
                             }
                         }
@@ -573,7 +640,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                     mStringBuilder.append("byte[] cipher.doFinal  返回结果  ").append(new String(Result, StandardCharsets.UTF_8)).append("\n");
                                 }
                                 getStackTraceMessage(mStringBuilder);
-
                                 FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
 
                             }
@@ -617,7 +683,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                 }
                                 getStackTraceMessage(stringBuffer);
 
-
                                 FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
                             }
 
@@ -642,7 +707,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             @Override
                             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                                 super.beforeHookedMethod(param);
-                                StringBuilder stringBuffer = new StringBuilder("三个参数 需要 IV  cipher.init(Cipher.ENCRYPT_MODE, skeySpec,IvParameterSpec)").append("\n");
+                                StringBuilder stringBuffer = new StringBuilder("三个参数 需要 IV  Cipher.init(Cipher.ENCRYPT_MODE, skeySpec,IvParameterSpec)").append("\n");
                                 stringBuffer.append("三个参数 需要 IV  cipher.init(Cipher.ENCRYPT_MODE, skeySpec,IvParameterSpec) ").append("\n");
 
                                 //CLogUtils.e("参数 类型 int   key   AlgorithmParameters");
@@ -671,7 +736,6 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
                                 getStackTraceMessage(stringBuffer);
 
-
                                 FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
 
                             }
@@ -697,7 +761,7 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                                 super.beforeHookedMethod(param);
                                 StringBuilder stringBuffer = new StringBuilder().append("\n");
-                                stringBuffer.append("cipher.init(Cipher.ENCRYPT_MODE, skeySpec,IvParameterSpec) ").append("\n");
+                                stringBuffer.append("Cipher.init(Cipher.ENCRYPT_MODE, skeySpec,IvParameterSpec) ").append("\n");
 
                                 CLogUtils.e("参数 类型 int   key   AlgorithmParameters   SecureRandom");
 
