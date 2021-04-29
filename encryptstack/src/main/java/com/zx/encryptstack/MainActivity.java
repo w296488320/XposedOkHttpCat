@@ -34,6 +34,8 @@ public class MainActivity extends AppCompatActivity {
     String[] permissionList = {
             Manifest.permission.READ_EXTERNAL_STORAGE,
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.INSTALL_PACKAGES,
+            Manifest.permission.READ_PHONE_STATE,
     };
 
 

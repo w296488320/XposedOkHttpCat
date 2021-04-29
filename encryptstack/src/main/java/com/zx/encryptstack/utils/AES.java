@@ -93,6 +93,8 @@ public class AES {
         return skeySpec;
     }
 
+
+
     public static String md5(String string) {
         if (TextUtils.isEmpty(string)) {
             return "";

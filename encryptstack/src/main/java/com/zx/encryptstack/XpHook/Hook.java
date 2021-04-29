@@ -8,8 +8,11 @@ import android.util.Base64;
 import android.view.MotionEvent;
 import android.view.View;
 
+import com.google.gson.Gson;
+import com.google.gson.annotations.SerializedName;
 import com.zx.encryptstack.utils.CLogUtils;
 import com.zx.encryptstack.utils.FileUtils;
+import com.zx.encryptstack.utils.GsonUtils;
 
 import org.json.JSONObject;
 
@@ -132,6 +135,13 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
 
     }
 
+
+
+
+
+    /**
+     * 核心方法
+     */
     private void HookEncrypMethod() {
 
 
@@ -563,6 +573,15 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                                         }
                                     } catch (Throwable e) {
                                         e.printStackTrace();
+                                    }
+                                    //打印加密秘钥Key
+                                    CipherKeyResut spiKey = getSpiKey(thisObject);
+                                    if(spiKey!=null){
+                                        mStringBuilder.append("byte[] cipher.doFinal(Byte[]) KeyJson内容打印  U8编码  ").append(spiKey.getKeyJson()).append("\n");
+                                        mStringBuilder.append("byte[] cipher.doFinal(Byte[]) KeyJson内容打印  16进制  ").append(bytesToHexString(spiKey.getKeyJson().getBytes())).append("\n");
+
+                                        mStringBuilder.append("byte[] cipher.doFinal(Byte[]) Key内容打印  U8编码  ").append(spiKey.getKey()).append("\n");
+                                        mStringBuilder.append("byte[] cipher.doFinal(Byte[]) Key内容打印  16进制  ").append(bytesToHexString(spiKey.getKey().getBytes())).append("\n");
                                     }
                                 }
 
@@ -1267,9 +1286,10 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     }
 
 
+
     @NonNull
     private String getStr(byte[] arg) {
-        if (arg == null) {
+        if (arg == null||arg.length==0) {
             return "";
         }
         return new String(arg, StandardCharsets.UTF_8);
@@ -1410,4 +1430,128 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
     public Object invoke(Object proxy, Method method, Object[] args) {
         return null;
     }
+
+
+    /**
+     * 主要用于保存key之类的信息
+     */
+    public static class SpiObject {
+
+        /**
+         * blockSize : 16
+         * calledUpdate : false
+         * cipherCtx : {"address":511974383816}
+         * encodedKey : [49,50,51,52,53,54,55,56,57,48,97,98,99,100,101,102]
+         * encrypting : true
+         * iv : [48,49,48,50,48,51,48,52,48,53,48,54,48,55,48,56]
+         * mode : CBC
+         * modeBlockSize : 16
+         * padding : PKCS5PADDING
+         */
+
+        @SerializedName("blockSize")
+        public int blockSize;
+        @SerializedName("calledUpdate")
+        public boolean calledUpdate;
+        @SerializedName("cipherCtx")
+        public CipherCtxDTO cipherCtx;
+        @SerializedName("encrypting")
+        public boolean encrypting;
+        @SerializedName("mode")
+        public String mode;
+        @SerializedName("modeBlockSize")
+        public int modeBlockSize;
+        @SerializedName("padding")
+        public String padding;
+        @SerializedName("encodedKey")
+        public byte[] encodedKey;
+        @SerializedName("iv")
+        public byte[] iv;
+
+        public static class CipherCtxDTO {
+            /**
+             * address : 511974383816
+             */
+
+            @SerializedName("address")
+            public long address;
+        }
+
+        public String getKey(){
+            if(encodedKey!=null){
+                return new String(encodedKey, StandardCharsets.UTF_8);
+            }
+            return "没有发现Key 或者 Key == null";
+        }
+    }
+
+
+
+
+    public static class CipherKeyResut{
+        public String key;
+        public String keyJson;
+
+        public String getKey(){
+            if(this.key==null){
+                return "";
+            }
+            return key;
+        }
+        public String getKeyJson(){
+            if(this.keyJson==null){
+                return "";
+            }
+            return keyJson;
+        }
+
+        @Override
+        public String toString() {
+            return "CipherKeyResut{" +
+                    "key='" + key + '\'' +
+                    ", keyJson='" + keyJson + '\'' +
+                    '}';
+        }
+    }
+
+
+    private static Field keyField;
+    /**
+     * 获取Cipher实例中的Key内容
+     */
+    private static CipherKeyResut getSpiKey(Cipher cipher) {
+        Object spiObject;
+        CipherKeyResut cipherKeyResut = new CipherKeyResut();
+        try {
+            if(keyField == null) {
+                try {
+                    keyField = Cipher.class.getDeclaredField("spi");
+                    keyField.setAccessible(true);
+                } catch (Throwable e) {
+                    //CLogUtils.e("getDeclaredField spi error  "+e.getMessage());
+                }
+
+            }
+            if(keyField != null) {
+                spiObject = keyField.get(cipher);
+                if (spiObject != null) {
+                    cipherKeyResut.keyJson = GsonUtils.obj2str(spiObject);
+                    if(cipherKeyResut.keyJson!=null) {
+                        SpiObject spiBean = (SpiObject) GsonUtils.getClass(cipherKeyResut.keyJson,SpiObject.class);
+                        if (spiBean != null) {
+                            cipherKeyResut.key = spiBean.getKey();
+                        }
+                    }
+                }
+            }
+            //CLogUtils.e("打印结果toString "+cipherKeyResut.toString());
+            return cipherKeyResut;
+        } catch (Throwable e) {
+            CLogUtils.e("getSpiKey error  "+e.getMessage());
+        }
+        return cipherKeyResut;
+    }
+
+
+
 }
