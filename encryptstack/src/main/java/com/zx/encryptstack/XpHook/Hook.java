@@ -1,9 +1,12 @@
 package com.zx.encryptstack.XpHook;
 
+import android.app.Activity;
 import android.app.ActivityManager;
 import android.app.Application;
 import android.content.Context;
+import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
 import android.util.Base64;
 import android.view.MotionEvent;
 import android.view.View;
@@ -46,6 +49,8 @@ import de.robv.android.xposed.XSharedPreferences;
 import de.robv.android.xposed.XposedBridge;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
+
+import static android.Manifest.permission.READ_EXTERNAL_STORAGE;
 
 
 /**
@@ -129,14 +134,32 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                         super.afterHookedMethod(param);
                         mOtherContext = (Context) param.args[0];
                         mLoader = mOtherContext.getClassLoader();
+
                         HookEncrypMethod();
+                    }
+                });
+
+        XposedHelpers.findAndHookMethod(Activity.class, "onCreate",
+                Bundle.class,
+                new XC_MethodHook() {
+                    @Override
+                    protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                        super.afterHookedMethod(param);
+                        if(param.thisObject instanceof Activity) {
+                            Activity activity = (Activity) param.thisObject;
+                            initPermissions(activity);
+                        }
                     }
                 });
 
     }
 
-
-
+    private void initPermissions(Activity activity) {
+        ActivityCompat.requestPermissions(activity, new String[]{
+                "android.permission.WRITE_EXTERNAL_STORAGE",
+                "android.permission.READ_EXTERNAL_STORAGE",
+                "android.permission.READ_PHONE_STATE"}, 0);
+    }
 
 
     /**
