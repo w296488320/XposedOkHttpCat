@@ -33,6 +33,7 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.Locale;
 import java.util.Objects;
@@ -41,6 +42,7 @@ import java.util.zip.GZIPOutputStream;
 
 import javax.crypto.Cipher;
 import javax.crypto.Mac;
+import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import de.robv.android.xposed.IXposedHookLoadPackage;
@@ -360,29 +362,22 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             }
 
 
-//            MessageDigest msgDitest = MessageDigest.getInstance("SHA-1");
-//            msgDitest.update(Bytes[]);
+
+
+//           Cipher ->getInstance
 
             try {
-                XposedHelpers.findAndHookMethod(MessageDigest.class, Update,
-                        byte[].class,
+                XposedHelpers.findAndHookMethod(Cipher.class, "getInstance",
+                        String.class,
                         new XC_MethodHook() {
 
                             @Override
                             protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                                 super.afterHookedMethod(param);
-                                StringBuilder mStringBuilder = new StringBuilder("MessageDigest->update(byte[] input) 无返回结果");
+                                StringBuilder mStringBuilder = new StringBuilder("Cipher.getInstance(String)");
+                                String arg = (String)param.args[0];
 
-                                MessageDigest msgDitest = (MessageDigest) param.thisObject;
-
-                                String algorithm = msgDitest.getAlgorithm();
-                                mStringBuilder.append("\n");
-                                mStringBuilder.append("MessageDigest  类型").append(algorithm).append("\n").
-                                        append("MessageDigest   toString ").append(msgDitest.toString()).append("\n").
-                                        append("msgDitest.update(Bytes[])  参数1 U8编码 ").append(getStr((byte[]) param.args[0])).append("\n").
-                                        append("msgDitest.update(Bytes[])  参数1 16进制 编码 ").append(bytesToHexString((byte[]) param.args[0])).append("\n");
-
-
+                                mStringBuilder.append("Cipher.getInstance(String) ").append(arg).append("\n");
                                 getStackTraceMessage(mStringBuilder);
                                 FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
                             }
@@ -390,9 +385,59 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                 );
 
             } catch (Throwable e) {
-                CLogUtils.e("MessageDigest->update(Bytes[]) 无返回结果 " + e);
+                CLogUtils.e("Cipher->getInstance(String)  " + e);
                 e.printStackTrace();
             }
+
+            //MessageDigest->getInstance
+            try {
+                XposedHelpers.findAndHookMethod(MessageDigest.class, "getInstance",
+                        String.class,
+                        new XC_MethodHook() {
+
+                            @Override
+                            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                                super.afterHookedMethod(param);
+                                StringBuilder mStringBuilder = new StringBuilder("MessageDigest.getInstance(String)");
+                                String arg = (String)param.args[0];
+
+                                mStringBuilder.append("MessageDigest.getInstance(String) ").append(arg).append("\n");
+                                getStackTraceMessage(mStringBuilder);
+                                FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                            }
+                        }
+                );
+
+            } catch (Throwable e) {
+                CLogUtils.e("MessageDigest->getInstance(String)  " + e);
+                e.printStackTrace();
+            }
+
+            //Mac->getInstance
+            try {
+                XposedHelpers.findAndHookMethod(Mac.class, "getInstance",
+                        String.class,
+                        new XC_MethodHook() {
+
+                            @Override
+                            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                                super.afterHookedMethod(param);
+                                StringBuilder mStringBuilder = new StringBuilder("Mac.getInstance(String)");
+                                String arg = (String)param.args[0];
+
+                                mStringBuilder.append("Mac.getInstance(String) ").append(arg).append("\n");
+                                getStackTraceMessage(mStringBuilder);
+                                FileUtils.SaveString(mOtherContext, mStringBuilder.toString(), InvokPackage);
+                            }
+                        }
+                );
+
+            } catch (Throwable e) {
+                CLogUtils.e("Mac->getInstance(String)  " + e);
+                e.printStackTrace();
+            }
+
+
 
 //            MessageDigest msgDitest = MessageDigest.getInstance("SHA-1");
 //            msgDitest.update(Bytes);
@@ -691,6 +736,36 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
                 CLogUtils.e("Hook cipher.doFinal(Byte[]); error " + e);
                 e.printStackTrace();
             }
+
+            // IvParameterSpec <init>
+            try {
+                XposedBridge.hookAllConstructors(IvParameterSpec.class,
+                        new XC_MethodHook() {
+                            @Override
+                            protected void afterHookedMethod(MethodHookParam param) throws Throwable {
+                                super.afterHookedMethod(param);
+                                StringBuilder stringBuffer = new StringBuilder("IvParameterSpec <init>").append("\n");
+
+                                if(param.args[0] instanceof byte[]) {
+                                    //这个方法 主要是 拿到 私钥
+                                    byte[] ivKey = (byte[])param.args[0];
+                                    stringBuffer.append("参数1 byte[] U8编码 ").append(new String(ivKey, StandardCharsets.UTF_8)).append("\n");
+                                    stringBuffer.append("参数1 byte[] 16进制编码 ").append(bytesToHexString(ivKey)).append("\n");
+                                    stringBuffer.append("参数1 byte[] 调用getIV() U8编码 ").append(new String(((IvParameterSpec)param.thisObject).getIV(), StandardCharsets.UTF_8)).append("\n");
+                                    stringBuffer.append("全部参数 Arrays.toString(param.args)  ").append(Arrays.toString(param.args)).append("\n");
+
+                                    getStackTraceMessage(stringBuffer);
+
+                                    FileUtils.SaveString(mOtherContext, stringBuffer.toString(), InvokPackage);
+                                }
+                            }
+                        }
+                );
+            } catch (Throwable e) {
+                CLogUtils.e("Hook IvParameterSpec <init>; error " + e);
+                e.printStackTrace();
+            }
+
 
 
             //cipher.init(Cipher.ENCRYPT_MODE, skeySpec);
@@ -1355,7 +1430,9 @@ public class Hook implements IXposedHookLoadPackage, InvocationHandler {
             StackTraceElement[] stackTrace = e.getStackTrace();
             mStringBuilder.append(" --------------------------   " + "\n");
             for (StackTraceElement stackTraceElement : stackTrace) {
-                mStringBuilder.append("栈信息      ").append(stackTraceElement.getClassName()).append(".").append(stackTraceElement.getMethodName()).append("\n");
+                mStringBuilder.append("栈信息      ").append(stackTraceElement.getClassName())
+                        .append(".").append(stackTraceElement.getMethodName())
+                        .append(" ").append(stackTraceElement.getLineNumber()).append("\n") ;
             }
             mStringBuilder.append(" --------------------------  " + "\n");
         }

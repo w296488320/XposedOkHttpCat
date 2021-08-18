@@ -1,5 +1,6 @@
 package com.zx.encryptstack.utils;
 
+import android.app.Application;
 import android.content.Context;
 import android.os.Environment;
 import android.util.Log;
@@ -78,10 +79,15 @@ public class FileUtils {
                 // 2.1的时候为：/sdcard，所以使用静态方法得到路径会好一点。
                 //String s=Environment.getExternalStorageDirectory();
                 File filedir = new File(sdCardDir + File.separator + "EncryptStack/");  // 这里的AA为创建的AA文件夹，在根目录下
+
                 if (!filedir.exists()) {
                     filedir.mkdirs();
                 }
+
                 File saveFile = new File(filedir, packageName + ".txt");
+                if (!filedir.exists()) {
+                    filedir.createNewFile();
+                }
                 fw = new FileWriter(saveFile, true);
                 PrintWriter pw = new PrintWriter(fw);
                 pw.println(str);

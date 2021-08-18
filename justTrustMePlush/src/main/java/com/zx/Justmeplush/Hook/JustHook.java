@@ -1407,11 +1407,12 @@ public class JustHook implements IXposedHookLoadPackage {
             Enumeration<String> enumeration = dexFile.entries();
             while (enumeration.hasMoreElements()) {//遍历
                 String className = enumeration.nextElement();
-                if (className.contains("okhttp")) {//在当前所有可执行的类里面查找包含有该包名的所有类
+                //if (className.contains("okhttp")) {//在当前所有可执行的类里面查找包含有该包名的所有类
                     classNameList.add(className);
-                }
+                //}
             }
         }
+        CLogUtils.e("初始化的Class个数是 "+classNameList.size());
     }
 
     public static class MyX509TrustManager implements X509TrustManager {
