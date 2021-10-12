@@ -74,6 +74,7 @@ public class AES {
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
         //IV 随机数
         IvParameterSpec iv = new IvParameterSpec(IV.getBytes());
+
         cipher.init(Cipher.ENCRYPT_MODE, skeySpec, iv);
         byte[] encrypted = cipher.doFinal(content.getBytes());
         return  encrypted;

@@ -12,7 +12,10 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 import static android.content.ContentValues.TAG;
 
@@ -22,7 +25,8 @@ import static android.content.ContentValues.TAG;
  */
 public class FileUtils {
 
-    private  static final File sdCardDir = Environment.getExternalStorageDirectory();//获取SDCard目录,2.2的时候为:/mnt/sdcart
+    private static final File sdCardDir = Environment.getExternalStorageDirectory();//获取SDCard目录,2.2的时候为:/mnt/sdcart
+
     /***
      * 调用方式
      *
@@ -69,49 +73,30 @@ public class FileUtils {
     }
 
 
-
-
-    public synchronized static void SaveString(Context mContext,String str, String packageName) {
-        FileWriter fw = null;
+    public static void saveString(Context mContext, String str, File file) {
         try {
-            if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-                File sdCardDir = Environment.getExternalStorageDirectory();//获取SDCard目录,2.2的时候为:/mnt/sdcart
-                // 2.1的时候为：/sdcard，所以使用静态方法得到路径会好一点。
-                //String s=Environment.getExternalStorageDirectory();
-                File filedir = new File(sdCardDir + File.separator + "EncryptStack/");  // 这里的AA为创建的AA文件夹，在根目录下
+            FileOutputStream outStream = new FileOutputStream(file.getPath(), true);
 
-                if (!filedir.exists()) {
-                    filedir.mkdirs();
-                }
+            OutputStreamWriter writer = new OutputStreamWriter(outStream, StandardCharsets.UTF_8);
 
-                File saveFile = new File(filedir, packageName + ".txt");
-                if (!filedir.exists()) {
-                    filedir.createNewFile();
-                }
-                fw = new FileWriter(saveFile, true);
-                PrintWriter pw = new PrintWriter(fw);
-                pw.println(str);
-                pw.flush();
-                try {
-                    fw.flush();
-                    pw.close();
-                    fw.close();
-                } catch (IOException e) {
-                    CLogUtils.e("保存 文件出错 "+e.toString()+"\n"+str);
-                    ToastUtils.showToast(mContext,"请手动 开起本程序读写SD卡权限  算法栈信息 无法保存 ");
-                }
-            }
-        } catch (IOException e) {
-            CLogUtils.e("保存 文件出错 "+e.toString()+"\n"+str);
-            ToastUtils.showToast(mContext,"请手动 开起本程序读写SD卡权限  算法栈信息 无法保存 ");
+            writer.write(str);
+
+            writer.flush();
+
+            writer.close();//记得关闭
+
+            outStream.close();
+
+        } catch (Exception e) {
+            CLogUtils.e("file write error " + e);
         }
     }
 
-    public static void DeleteFile(String PackageName){
+    public static void DeleteFile(String PackageName) {
         FileWriter fw = null;
         if (Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
             File sdCardDir = Environment.getExternalStorageDirectory();
-            File filedir = new File(sdCardDir + File.separator + "EncryptStack/"+PackageName+".txt");  // 这里的AA为创建的AA文件夹，在根目录下
+            File filedir = new File(sdCardDir + File.separator + "EncryptStack/" + PackageName + ".txt");  // 这里的AA为创建的AA文件夹，在根目录下
             if (filedir.exists()) {
                 filedir.delete();
             }
